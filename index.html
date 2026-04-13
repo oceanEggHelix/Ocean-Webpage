@@ -1803,7 +1803,7 @@
         const timeDiff = Math.abs(targetTime - startTime);
         const playDuration = Math.abs(index - prevIndex) === 1 ? 2000 : 5000;
         const playbackRate = timeDiff / (playDuration / 1000);
-        const puffer = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? 50 : 5;
+        const puffer = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? 60 : 20;
         const currentSection = this.sections[this.currentIndex];
         const nextSection = this.sections[index];
         currentSection.classList.add('fade-out'); nextSection.classList.add('fade-in');
