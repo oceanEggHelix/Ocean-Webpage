@@ -1,6 +1,3 @@
-# ALLE 404 Fehler auf index.html umleiten (für SPA-Routing)
-/*    /index.html    200
-
 # Spezifische Weiterleitungen (optional)
 /assets/*    /assets/:splat    200
 /about.html    /about    301
