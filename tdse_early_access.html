@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>TSDE · Motion Synth Portal – TSDE Engine v0.9 Beta von Benjamin Unger</title>
+
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="TSDE Engine v0.9 Beta – Deterministische Motion Synth Engine mit 240 Hz, Time Stretch 0.1x–10x, Blender Integration und PCHIP-Interpolation. Entwickelt von Benjamin Thorsten Unger.">
+    <meta name="keywords" content="TSDE Engine, Motion Synth, Time Stretch, Blender Integration, Spline Editor, Camera Rig, 240Hz Engine, Benjamin Unger, VTK Viewport, PCHIP Interpolation">
+    <meta name="author" content="Benjamin Thorsten Unger">
+    <meta name="robots" content="index, follow">
+
+    <!-- Open Graph / Social -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="TSDE Engine v0.9 Beta – Motion Synth Portal">
+    <meta property="og:description" content="Deterministische Motion Synth Engine mit 240 Hz, Time Stretch, Blender Integration und VTK-3D-Viewport. Early Access Portal.">
+    <meta property="og:image" content="/assets/gallery/tsde_engine.jpg">
+
+    <!-- Structured Data / Schema.org -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "TSDE Engine",
+      "version": "0.9 Beta",
+      "description": "Deterministische Motion Synth Engine mit 240 Hz Tick, Time Stretch (0.1x–10x), PCHIP-Interpolation, Blender Integration und VTK-3D-Viewport.",
+      "applicationCategory": "MultimediaApplication",
+      "operatingSystem": "Windows, macOS, Linux",
+      "author": {
+        "@type": "Person",
+        "name": "Benjamin Thorsten Unger",
+        "birthDate": "1987-04-10",
+        "birthPlace": "Nürtingen"
+      },
+      "offers": {
+        "@type": "Offer",
+        "availability": "https://schema.org/PreOrder",
+        "price": "0",
+        "priceCurrency": "EUR",
+        "description": "Early Access Beta"
+      },
+      "license": "https://www.gnu.org/licenses/agpl-3.0.html",
+      "featureList": [
+        "Deterministische Engine mit 240 Hz Tick",
+        "Time Stretch 0.1x bis 10x",
+        "Unbegrenzte Spline-Tracks",
+        "Blender Host Integration",
+        "VTK 3D Viewport",
+        "PCHIP Monotone Interpolation",
+        "Motion Synth Editor 1.0",
+        "Kamera-Rig mit Live-Preview"
+      ]
+    }
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --safe-top: env(safe-area-inset-top, 20px);
+            --safe-bottom: env(safe-area-inset-bottom, 20px);
+            --safe-left: env(safe-area-inset-left, 0px);
+            --safe-right: env(safe-area-inset-right, 0px);
+        }
+
+        body {
+            height: 100dvh;
+            background: #0a0c14;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            color: #eef5ff;
+            overflow: hidden;
+            position: relative;
+            padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+        }
+
+        .header,
+        .main-content,
+        .button-container,
+        .video-container,
+        .copyright {
+            transition: all 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body.page-entering .header { transform: translateY(-100px); opacity: 0; filter: blur(10px); }
+        body.page-entering .main-content { transform: translate(-50%, -50%) scale(0); opacity: 0; filter: blur(20px); }
+        body.page-entering .button-container,
+        body.page-entering .video-container,
+        body.page-entering .copyright { opacity: 0; filter: blur(10px); transform: translateY(20px); }
+
+        body.page-exiting .header { transform: translateY(-100px); opacity: 0; filter: blur(10px); pointer-events: none; }
+        body.page-exiting .main-content { transform: translate(-50%, 20%) scale(0); opacity: 0; filter: blur(20px); pointer-events: none; }
+        body.page-exiting .button-container,
+        body.page-exiting .video-container,
+        body.page-exiting .copyright { opacity: 0; filter: blur(10px); transform: translateY(20px); pointer-events: none; }
+
+        .header {
+            position: absolute;
+            top: calc(20px + var(--safe-top));
+            width: 100%;
+            text-align: center;
+            z-index: 10;
+            left: 0;
+            right: 0;
+            padding-left: var(--safe-left);
+            padding-right: var(--safe-right);
+        }
+
+        h1 {
+            font-weight: 200;
+            font-size: clamp(2rem, 8vw, 3.5rem);
+            letter-spacing: 10px;
+            text-transform: uppercase;
+            background: linear-gradient(135deg, #a0b9ff, #d6e4ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 25px rgba(100, 150, 255, 0.45);
+        }
+
+        .tdse-label {
+            border-top: 1px solid rgba(160, 185, 255, 0.2);
+            padding-top: 5px;
+            display: inline-block;
+            margin-top: 8px;
+            font-size: 0.75rem;
+            letter-spacing: 6px;
+            color: #a0b9ff;
+            opacity: 0.7;
+            font-weight: 300;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px rgba(160, 185, 255, 0.5);
+            transition: all 0.4s ease;
+        }
+
+        .main-content {
+            position: absolute;
+            top: 17.5%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 15;
+            pointer-events: none;
+        }
+
+        .portal-button {
+            width: 90vw;
+            max-width: 700px;
+            overflow: visible !important;
+            cursor: pointer;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            -webkit-tap-highlight-color: transparent;
+            pointer-events: auto;
+        }
+
+        .spline-path {
+            stroke: #7aa5ff;
+            stroke-width: 2.8;
+            fill: transparent;
+            stroke-dasharray: 520;
+            stroke-dashoffset: 0;
+            transition: stroke 0.4s ease, stroke-width 0.4s ease, filter 0.4s ease;
+            animation: flowWave 15s infinite linear, wobble 5s infinite ease-in-out;
+        }
+
+        .portal-button:hover { transform: translate(0, 0) scale(1.03); }
+        .portal-button:hover .spline-path {
+            stroke: #b3ccff;
+            stroke-width: 3.5;
+            animation: flowWave 10s infinite linear, wobble 1.2s infinite ease-in-out;
+            filter: url(#glow) drop-shadow(0 0 8px rgba(122, 165, 255, 0.7));
+        }
+        .portal-button:hover .pulse-dot { fill: #fff; filter: drop-shadow(0 0 5px #fff); }
+
+        .pulse-dot { fill: #7aa5ff; animation: pulse 4s infinite ease-in-out; transition: fill 0.4s ease; }
+        @keyframes pulse { 0%, 100% { r: 4; opacity: 0.5; } 50% { r: 7; opacity: 1; } }
+
+        .sub {
+            color: #eaf1ff;
+            font-size: 0.85rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            text-align: center;
+            margin-top: -55px;
+            transition: all 0.4s ease;
+            font-weight: 400;
+            animation: gentlePulseGlow 2.2s infinite ease-in-out;
+            display: inline-block;
+            width: auto;
+            background: linear-gradient(120deg, #f0f4ff, #c6dcff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 6px rgba(200, 220, 255, 0.8));
+        }
+
+        @keyframes gentlePulseGlow {
+            0%   { filter: drop-shadow(0 0 4px rgba(210, 230, 255, 0.6)) drop-shadow(0 0 1px rgba(255,255,240,0.3)); letter-spacing: 4px; }
+            50%  { filter: drop-shadow(0 0 12px rgba(220, 240, 255, 0.95)) drop-shadow(0 0 4px rgba(122, 165, 255, 0.9)); letter-spacing: 5px; }
+            100% { filter: drop-shadow(0 0 4px rgba(210, 230, 255, 0.6)) drop-shadow(0 0 1px rgba(255,255,240,0.3)); letter-spacing: 4px; }
+        }
+
+        @keyframes flowWave { 0% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: 520; } }
+        @keyframes wobble {
+            0%, 100% { d: path("M10,60 Q50,28 90,60 T190,60 T280,60"); }
+            50%      { d: path("M10,63 Q48,40 88,58 T188,63 T278,57"); }
+        }
+
+        .button-container {
+            position: absolute;
+            bottom: calc(80px + var(--safe-bottom));
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            padding: 0 30px;
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        .action-button {
+            background: rgba(10, 15, 25, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(122, 165, 255, 0.3);
+            border-radius: 50px;
+            padding: 16px 30px;
+            color: #a0b9ff;
+            font-size: 1rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            text-decoration: none;
+            font-weight: 300;
+            transition: all 0.4s ease;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            pointer-events: auto;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 180px;
+        }
+
+        .info-btn:hover { background: rgba(30, 40, 70, 0.9); border-color: #7aa5ff; box-shadow: 0 0 30px rgba(122, 165, 255, 0.4); color: #fff; letter-spacing: 6px; }
+        .download-btn { background: rgba(10, 15, 25, 0.9); border-color: rgba(122, 165, 255, 0.6); gap: 10px; }
+        .download-btn:hover { background: rgba(40, 60, 100, 0.95); border-color: #7aa5ff; box-shadow: 0 0 30px rgba(122, 165, 255, 0.5); color: #fff; letter-spacing: 6px; }
+        .download-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; transition: transform 0.3s ease; }
+        .download-btn:hover svg { transform: translateY(3px); }
+        .gallery-btn:hover { background: rgba(30, 40, 70, 0.9); border-color: #7aa5ff; box-shadow: 0 0 30px rgba(122, 165, 255, 0.4); color: #fff; letter-spacing: 6px; }
+
+        .video-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 25;
+            pointer-events: none;
+        }
+
+        .video-player {
+            width: 400px;
+            aspect-ratio: 16 / 9;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #1a1f2e;
+            pointer-events: auto;
+            margin: 0 auto;
+            box-shadow: 0 0 20px rgba(122, 165, 255, 0.4), 0 0 40px rgba(122, 165, 255, 0.25), 0 0 60px rgba(100, 150, 255, 0.15);
+            transition: all 0.4s ease;
+        }
+        .video-player:hover { transform: scale(1.02); box-shadow: 0 0 28px rgba(122, 165, 255, 0.55), 0 0 50px rgba(122, 165, 255, 0.35), 0 0 80px rgba(100, 150, 255, 0.25); }
+        .video-player iframe { width: 100%; height: 100%; border: none; display: block; border-radius: 12px; }
+
+        .copyright {
+            position: absolute;
+            bottom: calc(20px + var(--safe-bottom));
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.7rem;
+            color: #3a4a60;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            z-index: 30;
+            white-space: nowrap;
+            background: rgba(10, 15, 25, 0.3);
+            backdrop-filter: blur(5px);
+            padding: 6px 16px;
+            border-radius: 30px;
+            border: 1px solid rgba(122, 165, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        .copyright:hover { color: #5a7aa0; border-color: rgba(122, 165, 255, 0.2); letter-spacing: 3px; }
+        .about-link { color: #3a4a60; text-decoration: none; margin-left: 10px; font-size: 0.8rem; opacity: 0.3; transition: opacity 0.3s; }
+        .about-link:hover { opacity: 1; color: #7aa5ff; }
+
+        /* ==================== GALERIE ==================== */
+        .gallery-grid-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(2, 5, 12, 0.98); backdrop-filter: blur(10px);
+            z-index: 200; display: none; justify-content: center; align-items: center;
+            opacity: 0; transition: opacity 0.4s ease;
+        }
+        .gallery-grid-overlay.active { display: flex; opacity: 1; }
+        .gallery-grid-content {
+            position: relative; width: 90%; max-width: 1200px; height: 85vh;
+            background: rgba(8, 12, 20, 0.95); border: 1px solid rgba(122, 165, 255, 0.3);
+            border-radius: 12px; padding: 40px 20px 20px 20px; overflow: hidden;
+        }
+        .gallery-grid-close {
+            position: absolute; top: 10px; right: 15px; background: none; border: none;
+            color: #7a8bb0; font-size: 2.5rem; cursor: pointer; transition: color 0.3s;
+            z-index: 210; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+        }
+        .gallery-grid-close:hover { color: #fff; }
+        .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; padding: 10px; overflow-y: auto; height: 100%; }
+        .gallery-item {
+            position: relative; aspect-ratio: 16/9; background: #1a1f2e;
+            border: 1px solid rgba(122, 165, 255, 0.2); border-radius: 8px;
+            overflow: hidden; cursor: pointer; transition: all 0.3s ease;
+        }
+        .gallery-item:hover { transform: scale(1.05); border-color: rgba(122, 165, 255, 0.8); box-shadow: 0 0 20px rgba(122, 165, 255, 0.3); }
+        .gallery-item img { width: 100%; height: 100%; object-fit: cover; }
+        .gallery-item span { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(2, 5, 12, 0.8); color: #a0b9ff; padding: 5px; font-size: 0.7rem; text-align: center; letter-spacing: 1px; text-transform: uppercase; }
+
+        .gallery-fullscreen-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.98); z-index: 300; display: none;
+            justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s ease;
+        }
+        .gallery-fullscreen-overlay.active { display: flex; opacity: 1; }
+        .fullscreen-content { position: relative; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; padding: 40px; }
+        .fullscreen-image-container { position: relative; max-width: 90vw; max-height: 90vh; display: flex; justify-content: center; align-items: center; }
+        .fullscreen-image-container img { max-width: 100%; max-height: 90vh; object-fit: contain; border: 2px solid rgba(122, 165, 255, 0.3); border-radius: 8px; box-shadow: 0 0 40px rgba(0, 0, 0, 0.8); }
+        .fullscreen-title { position: absolute; bottom: -30px; left: 0; right: 0; text-align: center; color: #a0b9ff; font-size: 0.9rem; letter-spacing: 2px; text-transform: uppercase; }
+        .fullscreen-close { position: absolute; top: 30px; right: 30px; background: rgba(10, 15, 25, 0.8); border: 1px solid rgba(122, 165, 255, 0.3); border-radius: 50%; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; color: #a0b9ff; font-size: 2rem; cursor: pointer; transition: all 0.3s; z-index: 310; }
+        .fullscreen-close:hover { background: rgba(30, 40, 70, 0.9); border-color: #7aa5ff; color: #fff; transform: scale(1.1); }
+        .nav-arrow { position: absolute; top: 50%; transform: translateY(-50%); width: 60px; height: 60px; background: rgba(10, 15, 25, 0.7); border: 1px solid rgba(122, 165, 255, 0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #a0b9ff; font-size: 2rem; cursor: pointer; transition: all 0.3s; z-index: 320; backdrop-filter: blur(5px); }
+        .nav-arrow:hover { background: rgba(30, 40, 70, 0.9); border-color: #7aa5ff; color: #fff; transform: translateY(-50%) scale(1.1); }
+        .nav-arrow.left { left: 30px; }
+        .nav-arrow.right { right: 30px; }
+
+        /* ==================== DOC PANEL ==================== */
+        .doc-panel {
+            position: fixed;
+            right: -450px;
+            top: 0;
+            width: 440px;
+            max-width: 85vw;
+            height: 100dvh;
+            background: rgba(8, 12, 20, 0.98);
+            backdrop-filter: blur(24px);
+            border-left: 1px solid rgba(122, 165, 255, 0.3);
+            padding: calc(80px + var(--safe-top)) 24px 28px 24px;
+            overflow-y: auto;
+            transition: right 0.5s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            z-index: 200;
+            scrollbar-width: thin;
+            box-shadow: -10px 0 40px rgba(0, 0, 0, 0.8);
+        }
+        .doc-panel.open { right: 0; }
+        .doc-panel::-webkit-scrollbar { width: 4px; }
+        .doc-panel::-webkit-scrollbar-track { background: #0a0f1a; }
+        .doc-panel::-webkit-scrollbar-thumb { background: #2a3a60; border-radius: 4px; }
+
+        .doc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; padding-bottom: 12px; border-bottom: 1px solid rgba(122, 165, 255, 0.3); }
+        .doc-header h2 { font-weight: 300; font-size: 1.4rem; letter-spacing: 3px; color: #a0b9ff; }
+        .close-doc { background: none; border: none; color: #7a8bb0; font-size: 2.5rem; cursor: pointer; transition: color 0.3s; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; }
+        .close-doc:hover { color: #fff; }
+
+        .doc-content { color: #c0d0f0; font-size: 0.88rem; line-height: 1.6; }
+        .doc-content h3 { color: #a0b9ff; font-weight: 400; letter-spacing: 2px; margin: 24px 0 10px 0; font-size: 1.05rem; }
+        .doc-content h4 { color: #7aa5ff; font-weight: 300; letter-spacing: 1px; margin: 14px 0 5px 0; font-size: 0.95rem; }
+        .doc-content ul { margin-left: 22px; margin-bottom: 14px; list-style-type: none; }
+        .doc-content li { margin-bottom: 6px; position: relative; padding-left: 18px; }
+        .doc-content li::before { content: "▹"; position: absolute; left: 0; color: #7aa5ff; font-size: 0.75rem; }
+        .badge { display: inline-block; background: rgba(122, 165, 255, 0.2); border: 1px solid rgba(122, 165, 255, 0.3); border-radius: 4px; padding: 2px 8px; font-size: 0.68rem; letter-spacing: 1px; margin-right: 5px; color: #a0b9ff; }
+        .highlight { color: #ffd966; font-weight: 500; }
+        .author { margin-top: 32px; padding-top: 16px; border-top: 1px solid rgba(122, 165, 255, 0.2); font-size: 0.78rem; text-align: center; color: #7a8bb0; }
+
+        table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.78rem; background: rgba(0,0,0,0.2); border-radius: 8px; }
+        td { padding: 6px 5px; border-bottom: 1px solid rgba(122, 165, 255, 0.15); }
+
+        /* ==================== RESPONSIVE ==================== */
+
+        /* Tablet / mittleres Mobile */
+        @media (max-width: 768px) {
+            .header { top: calc(10px + var(--safe-top)); }
+            .button-container { bottom: calc(60px + var(--safe-bottom)); gap: 10px; flex-direction: column; }
+            .action-button { width: 100%; max-width: 280px; padding: 12px 20px; font-size: 0.75rem; white-space: normal; min-width: auto; }
+            .video-player { width: 300px; }
+            .sub { font-size: 0.75rem; margin-top: -40px; }
+            .gallery-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+
+            /* Doc Panel Mobile */
+            .doc-panel {
+                width: 88vw;
+                right: -88vw;
+                padding: calc(70px + var(--safe-top)) 16px 20px 16px;
+            }
+            .doc-header h2 { font-size: 1.1rem; letter-spacing: 2px; }
+            .doc-content { font-size: 0.8rem; line-height: 1.55; }
+            .doc-content h3 { font-size: 0.95rem; margin: 18px 0 8px 0; letter-spacing: 1.5px; }
+            .doc-content h4 { font-size: 0.85rem; margin: 10px 0 4px 0; }
+            .doc-content li { margin-bottom: 5px; font-size: 0.8rem; }
+            .badge { font-size: 0.62rem; padding: 2px 6px; }
+            table { font-size: 0.72rem; }
+            td { padding: 5px 4px; }
+            .author { font-size: 0.72rem; margin-top: 24px; }
+        }
+
+        /* Standard Mobile */
+        @media (max-width: 480px) {
+            .main-content { top: 12%; }
+            .portal-button { width: 110vw; margin-top: 90px; }
+            .sub { font-size: 0.7rem; margin-top: -40px; letter-spacing: 2.5px; }
+            .video-player { width: 260px; }
+            .copyright { font-size: 0.55rem; padding: 4px 12px; bottom: calc(12px + var(--safe-bottom)); }
+
+            /* Doc Panel klein */
+            .doc-panel {
+                width: 92vw;
+                right: -92vw;
+                padding: calc(65px + var(--safe-top)) 14px 18px 14px;
+            }
+            .doc-header { margin-bottom: 14px; padding-bottom: 10px; }
+            .doc-header h2 { font-size: 1rem; letter-spacing: 1.5px; }
+            .close-doc { font-size: 2rem; width: 36px; height: 36px; }
+            .doc-content { font-size: 0.75rem; line-height: 1.5; }
+            .doc-content h3 { font-size: 0.88rem; margin: 14px 0 7px 0; letter-spacing: 1px; }
+            .doc-content h4 { font-size: 0.8rem; margin: 8px 0 3px 0; }
+            .doc-content ul { margin-left: 16px; margin-bottom: 10px; }
+            .doc-content li { font-size: 0.75rem; margin-bottom: 4px; padding-left: 14px; }
+            .badge { font-size: 0.58rem; padding: 1px 5px; margin-right: 3px; }
+            table { font-size: 0.68rem; }
+            td { padding: 4px 3px; }
+            .author { font-size: 0.68rem; margin-top: 18px; padding-top: 12px; }
+        }
+
+        /* iPhone SE / kleine Geräte bis 376px */
+        @media (max-width: 376px) {
+            .doc-panel {
+                width: 96vw;
+                right: -96vw;
+                padding: calc(60px + var(--safe-top)) 12px 16px 12px;
+            }
+            .doc-header h2 { font-size: 0.9rem; letter-spacing: 1px; }
+            .close-doc { font-size: 1.8rem; width: 32px; height: 32px; }
+            .doc-content { font-size: 0.7rem; line-height: 1.45; }
+            .doc-content h3 { font-size: 0.82rem; margin: 12px 0 6px 0; letter-spacing: 0.8px; }
+            .doc-content h4 { font-size: 0.75rem; margin: 7px 0 3px 0; }
+            .doc-content ul { margin-left: 14px; margin-bottom: 8px; }
+            .doc-content li { font-size: 0.7rem; margin-bottom: 3px; padding-left: 12px; }
+            .doc-content li::before { font-size: 0.65rem; }
+            .badge { font-size: 0.55rem; padding: 1px 4px; margin-right: 2px; }
+            table { font-size: 0.64rem; }
+            td { padding: 3px 3px; }
+            .author { font-size: 0.62rem; margin-top: 14px; }
+
+            /* Layout-Anpassungen für SE */
+            .portal-button { width: 115vw; }
+            .video-player { width: 240px; }
+            .action-button { padding: 10px 16px; font-size: 0.7rem; letter-spacing: 2px; }
+            .copyright { font-size: 0.5rem; padding: 3px 10px; letter-spacing: 1.5px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header" id="header">
+    <h1>O·C·E·A·N</h1>
+    <div class="tdse-label">TSDE EARLY ACCESS PORTAL</div>
+</div>
+
+<div class="main-content">
+    <svg class="portal-button" viewBox="0 -20 300 140" id="portalSpline" role="img" aria-label="Portal öffnen – TSDE Motion Synth Engine starten">
+        <defs>
+            <filter id="glow" x="-20%" y="-50%" width="140%" height="200%">
+                <feGaussianBlur stdDeviation="3" result="blur"/>
+                <feMerge>
+                    <feMergeNode in="blur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+            </filter>
+        </defs>
+        <path class="spline-path" d="M10,60 Q50,28 90,60 T190,60 T280,60" filter="url(#glow)"/>
+        <circle cx="10" cy="60" r="4" class="pulse-dot" filter="url(#glow)"/>
+        <circle cx="90" cy="60" r="4" class="pulse-dot" style="animation-delay: 0.8s" filter="url(#glow)"/>
+        <circle cx="190" cy="60" r="4" class="pulse-dot" style="animation-delay: 1.6s" filter="url(#glow)"/>
+        <circle cx="280" cy="60" r="4" class="pulse-dot" style="animation-delay: 2.4s" filter="url(#glow)"/>
+    </svg>
+    <div class="sub">Zum Portal · drück Mich</div>
+</div>
+
+<div class="video-container"><div class="video-player" id="videoPlayer"></div></div>
+
+<div class="button-container">
+    <button class="action-button info-btn" id="infoButton" aria-label="TSDE Dokumentation öffnen">📄 DOKUMENTATION</button>
+    <button class="action-button gallery-btn" id="galleryButton" aria-label="TSDE Screenshot Galerie öffnen">🖼️ GALERIE</button>
+    <a href="assets/TSDE.zip" class="action-button download-btn" id="downloadBtn" download aria-label="TSDE v0.9 Beta herunterladen">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17v2h16v-2M12 3v12m0 0l-4-4m4 4l4-4" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+        TSDE v0.9 β
+    </a>
+</div>
+
+<div class="copyright">© 2025 Benjamin Unger · TSDE v0.9 Beta <a href="about.html" class="about-link" aria-label="Über TSDE">⏚</a></div>
+
+<!-- ==================== DOKUMENTATION PANEL (SEO-optimiert) ==================== -->
+<div class="doc-panel" id="docPanel" role="complementary" aria-label="TSDE Engine Dokumentation">
+    <div class="doc-header">
+        <h2>TSDE · v0.9 Beta</h2>
+        <button class="close-doc" id="closeDoc" aria-label="Dokumentation schließen">×</button>
+    </div>
+    <div class="doc-content">
+
+        <p><span class="badge">🚀 ENGINE</span> <span class="badge">🎨 SYNTH</span> <span class="badge">🔥 TIME STRETCH</span></p>
+
+        <h3>TSDE Engine &amp; Motion Synth Editor – v0.9 Beta</h3>
+        <p>
+            <strong>Entwickler:</strong> Benjamin Thorsten Unger (geb. 10.04.1987, Nürtingen)<br>
+            Alle Rechte vorbehalten · Dual-Lizenz: AGPL v3 &amp; Kommerziell
+        </p>
+        <p style="margin-top:8px; color:#8aa3cc; font-size:0.82em;">
+            TSDE ist eine deterministische Motion-Synth-Engine für Blender, die präzise Fahrzeugbewegungen auf Splines mit 240 Hz aufzeichnet, editiert und in Echtzeit als Export rendert.
+        </p>
+
+        <h3>1. TSDE Live Engine 0.9 Beta</h3>
+
+        <h4>Engine-Architektur</h4>
+        <ul>
+            <li>Deterministische Engine mit festem <strong>240 Hz</strong>-Tick</li>
+            <li>Recorder läuft mit 240 Hz in separatem Prozess</li>
+            <li>Vollständig multiprozess-synchronisiert</li>
+            <li><span class="highlight">🔥 Time Stretch</span> – Slow-Motion 0,1× bis Zeitraffer 10×</li>
+        </ul>
+
+        <h4>Tracks &amp; Splines</h4>
+        <ul>
+            <li>Unbegrenzte Splines/Tracks pro Session</li>
+            <li>Eigene Spline-Geometrie, Geschwindigkeitskurve, v-max, Startposition</li>
+        </ul>
+
+        <h4>Pedal-Steuerung</h4>
+        <ul>
+            <li>Jeder Track besitzt eigenes Pedal (+100 % bis −100 %)</li>
+            <li>Deterministische Vorwärts-/Rückwärtsbewegung</li>
+        </ul>
+
+        <h4>Interpolation &amp; Datenintegrität</h4>
+        <ul>
+            <li>Monotone <strong>PCHIP-Interpolation</strong> – keine Overshoots</li>
+            <li>Spike-Glättung, artefaktfreie Kurven</li>
+        </ul>
+
+        <h3>2. Motion Synth Editor 1.0</h3>
+        <ul>
+            <li>Import von TSDE-Record-Sessions, hierarchische Gruppen</li>
+            <li>Drag &amp; Drop-Sortierung, 100 % kompatibel zur Live Engine</li>
+            <li><span class="highlight">Beliebige Versionen aus einem Recording</span> (Slow-Mo, Zeitraffer)</li>
+        </ul>
+
+        <h3>3. Kamera-Rig &amp; Live-Preview</h3>
+        <ul>
+            <li>Einstellbare Parameter: Focal Length, Offset, Höhe</li>
+            <li>Kamera auf Track oder Marker positionierbar</li>
+            <li>Deterministische Live-Preview – 1:1 identisch mit Export</li>
+        </ul>
+
+        <h3>4. Timeline &amp; Geometrie</h3>
+        <ul>
+            <li>Vollständige Timeline mit Zoom und editierbaren Geschwindigkeitskurven</li>
+            <li>Geometrische Abwicklung (reale Distanz entlang Spline)</li>
+            <li>Startpunkt über Marker oder Original-Recording wählbar</li>
+        </ul>
+
+        <h3>5. Export &amp; Time Stretch</h3>
+        <ul>
+            <li>1:1 deterministischer Export, byte-genau reproduzierbar</li>
+            <li>Time-Stretch-Export (0,1× – 10×) aus demselben Recording</li>
+        </ul>
+
+        <h3>6. Blender Host Integration</h3>
+        <ul>
+            <li>Spline Generator, Setup Builder, Engine Control, Live Control</li>
+            <li>Recorder (240 Hz), Render Export mit Roll, Time Stretch Render</li>
+            <li>VTK-3D-Viewport für Echtzeit-Visualisierung</li>
+        </ul>
+
+        <h3>Technische Spezifikation</h3>
+        <table>
+            <tr><td>Engine-Tick</td><td>240 Hz (deterministisch)</td></tr>
+            <tr><td>Recorder</td><td>240 Hz (separater Prozess)</td></tr>
+            <tr><td>Time Stretch</td><td>0,1× – 10×</td></tr>
+            <tr><td>Pedal-Range</td><td>−100 % bis +100 %</td></tr>
+            <tr><td>Interpolation</td><td>PCHIP (monoton)</td></tr>
+            <tr><td>Plattform</td><td>Blender Add-on (Python)</td></tr>
+        </table>
+
+        <h3>Feature-Übersicht</h3>
+        <ul style="columns:2;">
+            <li>✅ Deterministische Engine</li>
+            <li>✅ Time Stretch</li>
+            <li>✅ Unbegrenzte Tracks</li>
+            <li>✅ Live-Preview</li>
+            <li>✅ Blender-Integration</li>
+            <li>✅ VTK-3D-Viewport</li>
+            <li>✅ PCHIP-Interpolation</li>
+            <li>✅ Motion Synth Editor</li>
+        </ul>
+
+        <h3>Geplante Erweiterungen</h3>
+        <ul>
+            <li>Modulations-Tools für dynamische Kurvenbearbeitung</li>
+            <li>Erweiterte Kamera-Rigs und Multi-Track-Kamera</li>
+        </ul>
+
+        <div class="author">
+            <strong>© 2025 Benjamin Thorsten Unger</strong><br>
+            Geboren 10.04.1987 · Nürtingen, Deutschland<br>
+            Alle Rechte vorbehalten
+        </div>
+
+        <div style="margin-top: 32px; padding: 16px; border: 1px solid rgba(122, 165, 255, 0.2); border-radius: 8px; background: rgba(2, 5, 12, 0.5);">
+            <h3 style="color: #a0b9ff; font-weight: 400; letter-spacing: 1.5px; margin: 0 0 12px 0; font-size: 1rem;">Lizenz</h3>
+            <p style="color: #c0d0f0; margin-bottom: 10px;">TSDE Engine ist <strong style="color:#7aa5ff;">dual-lizenziert:</strong></p>
+            <div style="margin-bottom: 10px; padding-left: 10px; border-left: 2px solid rgba(122, 165, 255, 0.3);">
+                <p style="color: #a0b9ff;"><span style="color: #7aa5ff;">🔹</span> <strong>AGPL v3</strong> – Hobbyisten, Bildung, Open Source</p>
+            </div>
+            <div style="margin-bottom: 12px; padding-left: 10px; border-left: 2px solid rgba(255, 200, 100, 0.3);">
+                <p style="color: #a0b9ff;"><span style="color: #ffd966;">🔸</span> <strong>Kommerzielle Lizenz</strong> – Firmen, kommerzielle Produkte</p>
+            </div>
+            <div style="padding: 8px; background: rgba(122, 165, 255, 0.1); border-radius: 6px; text-align: center;">
+                <p style="color: #a0b9ff;">📧 <strong>Kontakt &amp; Lizenzanfragen:</strong><br><a href="mailto:benjaminu@live.de" style="color: #7aa5ff;">benjaminu@live.de</a></p>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- GALERIE OVERLAYS -->
+<div class="gallery-grid-overlay" id="galleryGridOverlay" role="dialog" aria-label="TSDE Screenshot Galerie">
+    <button class="gallery-grid-close" id="galleryGridClose" aria-label="Galerie schließen">×</button>
+    <div class="gallery-grid-content">
+        <div class="gallery-grid" id="galleryGrid"></div>
+    </div>
+</div>
+<div class="gallery-fullscreen-overlay" id="galleryFullscreenOverlay" role="dialog" aria-label="Vollbild Ansicht">
+    <div class="fullscreen-content">
+        <button class="fullscreen-close" id="fullscreenClose" aria-label="Vollbild schließen">×</button>
+        <div class="nav-arrow left" id="navPrev" role="button" aria-label="Vorheriges Bild">‹</div>
+        <div class="nav-arrow right" id="navNext" role="button" aria-label="Nächstes Bild">›</div>
+        <div class="fullscreen-image-container">
+            <img id="fullscreenImage" src="" alt="">
+            <div class="fullscreen-title" id="fullscreenTitle"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        document.documentElement.style.setProperty('--safe-top', '59px');
+        document.documentElement.style.setProperty('--safe-bottom', '34px');
+
+        document.body.classList.add('page-entering');
+        setTimeout(() => document.body.classList.remove('page-entering'), 50);
+
+        function animatePageExit(cb) {
+            document.body.classList.add('page-exiting');
+            setTimeout(() => { document.body.classList.remove('page-exiting'); if(cb) cb(); }, 1500);
+        }
+        const startPortal = () => {
+            if(!document.body.classList.contains('page-exiting')) {
+                if(navigator.vibrate) navigator.vibrate([15,30,15]);
+                animatePageExit(() => window.location.href='index.html');
+            }
+        };
+
+        const spline = document.getElementById('portalSpline');
+        const infoBtn = document.getElementById('infoButton');
+        const docPanel = document.getElementById('docPanel');
+        const closeDoc = document.getElementById('closeDoc');
+        const galleryBtn = document.getElementById('galleryButton');
+        const galleryOverlay = document.getElementById('galleryGridOverlay');
+        const galleryClose = document.getElementById('galleryGridClose');
+        const galleryGrid = document.getElementById('galleryGrid');
+        const fullOverlay = document.getElementById('galleryFullscreenOverlay');
+        const fullClose = document.getElementById('fullscreenClose');
+        const fullImage = document.getElementById('fullscreenImage');
+        const fullTitle = document.getElementById('fullscreenTitle');
+        const navPrev = document.getElementById('navPrev');
+        const navNext = document.getElementById('navNext');
+        const videoDiv = document.getElementById('videoPlayer');
+
+        const images = [
+            { src: '/assets/gallery/tsde_engine.jpg', title: 'TSDE Engine' },
+            { src: '/assets/gallery/motion_synth.jpg', title: 'Motion Synth' },
+            { src: '/assets/gallery/camera_rig.jpg', title: 'Camera Rig' },
+            { src: '/assets/gallery/spline_editor.jpg', title: 'Spline Editor' },
+            { src: '/assets/gallery/live_control.jpg', title: 'Live Control' },
+            { src: '/assets/gallery/time_stretch.jpg', title: 'Time Stretch' },
+            { src: '/assets/gallery/Blender_Host1.jpg', title: 'Render Preview' },
+            { src: '/assets/gallery/Blender_Host2.jpg', title: 'Multi-Rig' },
+            { src: '/assets/gallery/Blender_Host3.jpg', title: 'Recorder' },
+            { src: '/assets/gallery/Blender_Host4.jpg', title: 'VTK Viewport' }
+        ];
+        let currentIdx = 0;
+
+        function buildGallery() {
+            galleryGrid.innerHTML = '';
+            images.forEach((img, i) => {
+                const item = document.createElement('div');
+                item.className = 'gallery-item';
+                item.innerHTML = `<img src="${img.src}" alt="TSDE Screenshot: ${img.title}" loading="lazy"><span>${img.title}</span>`;
+                item.onclick = () => { currentIdx = i; showFullscreen(); };
+                galleryGrid.appendChild(item);
+            });
+        }
+        function showFullscreen() {
+            fullImage.src = images[currentIdx].src;
+            fullImage.alt = 'TSDE ' + images[currentIdx].title;
+            fullTitle.innerText = images[currentIdx].title;
+            fullOverlay.classList.add('active');
+        }
+        function next() { currentIdx = (currentIdx+1)%images.length; showFullscreen(); }
+        function prev() { currentIdx = (currentIdx-1+images.length)%images.length; showFullscreen(); }
+
+        spline.addEventListener('click', startPortal);
+        spline.addEventListener('touchstart', (e) => { e.preventDefault(); startPortal(); }, { passive: false });
+        infoBtn.onclick = (e) => { e.stopPropagation(); docPanel.classList.add('open'); };
+        closeDoc.onclick = () => docPanel.classList.remove('open');
+        document.addEventListener('click', (e) => {
+            if(docPanel.classList.contains('open') && !docPanel.contains(e.target) && e.target !== infoBtn)
+                docPanel.classList.remove('open');
+        });
+        galleryBtn.onclick = () => { buildGallery(); galleryOverlay.classList.add('active'); };
+        galleryClose.onclick = () => galleryOverlay.classList.remove('active');
+        fullClose.onclick = () => fullOverlay.classList.remove('active');
+        navPrev.onclick = prev;
+        navNext.onclick = next;
+        document.addEventListener('keydown', (e) => {
+            if(fullOverlay.classList.contains('active')) {
+                if(e.key==='ArrowLeft') prev();
+                else if(e.key==='ArrowRight') next();
+                else if(e.key==='Escape') fullOverlay.classList.remove('active');
+            }
+        });
+        [galleryOverlay, fullOverlay].forEach(overlay =>
+            overlay.addEventListener('click', (e) => { if(e.target===overlay) overlay.classList.remove('active'); })
+        );
+
+        // Swipe to close doc panel
+        let touchStartX = 0, touchStartY = 0;
+        docPanel.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        }, { passive: true });
+        docPanel.addEventListener('touchmove', (e) => {
+            if (!docPanel.classList.contains('open')) return;
+            const deltaX = e.touches[0].clientX - touchStartX;
+            const deltaY = e.touches[0].clientY - touchStartY;
+            if (deltaX > 50 && Math.abs(deltaX) > Math.abs(deltaY)) {
+                e.preventDefault();
+                docPanel.classList.remove('open');
+            }
+        }, { passive: false });
+        let mouseStartX = 0;
+        docPanel.addEventListener('mousedown', (e) => { mouseStartX = e.clientX; });
+        docPanel.addEventListener('mouseup', (e) => {
+            if (!docPanel.classList.contains('open')) return;
+            if (e.clientX - mouseStartX > 60) docPanel.classList.remove('open');
+        });
+
+        videoDiv.innerHTML = `<iframe src="https://www.youtube.com/embed/rXTfrWDkRi4?autoplay=0&rel=0&modestbranding=1&controls=1&playsinline=1" title="TSDE Engine Motion Synth Showreel – Benjamin Unger" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+        history.pushState({page:'portal'}, '');
+    })();
+</script>
+</body>
+</html>

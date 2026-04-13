@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>ABOUT · TSDE Engine & O·C·E·A·N Motion Synth</title>
+  
+  <!-- WICHTIGE SEO META TAGS -->
+  <meta name="description" content="TSDE Engine & Motion Synth Editor - Deterministische CGI ohne Frames. 240Hz Engine, Time Stretch (0.1x-10x), Blender Integration, framefreie Bewegung.">
+  <meta name="keywords" content="TSDE, Engine, Motion Synth, CGI, 240Hz, Time Stretch, Blender, framefrei, deterministisch, Benjamin Unger">
+  <meta name="author" content="Benjamin Thorsten Unger">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a0c14">
+  
+  <!-- Open Graph für Social Media -->
+  <meta property="og:title" content="TSDE · Über das Projekt">
+  <meta property="og:description" content="TEMPORAL SPLINE DRIVEN ENGINE - framefreie Bewegung für professionelle CGI">
+  <meta property="og:url" content="https://O-C-E-A-N.de/about.html">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://O-C-E-A-N.de/assets/tsde-og-image.jpg">
+  
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="TSDE Engine">
+  <meta name="twitter:description" content="Deterministische CGI ohne Frames">
+  
+  <!-- Canonical URL (wichtig für SEO) -->
+  <link rel="canonical" href="https://O-C-E-A-N.de/about.html">
+  
+  <!-- Favicon (optional) -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
+  
+  <style>
+    :root {
+      --bg: #02040b;
+      --bg-alt: #050816;
+      --accent: #00c2ff;
+      --accent-soft: #00c2ff33;
+      --text: #e6f1ff;
+      --text-soft: #8fa0c2;
+      --border: #1a2740;
+      --danger: #ff4b4b;
+      --muted: #4b5670;
+      --radius: 10px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #04142a 0, #02040b 45%, #000 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 32px 16px;
+      position: relative;
+    }
+    
+    /* Zurück-Button im OCEAN-Design */
+    .back-button {
+      position: fixed;
+      top: 30px;
+      left: 30px;
+      background: rgba(2, 8, 23, 0.8);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(0, 194, 255, 0.4);
+      color: #00c2ff;
+      padding: 12px 24px;
+      border-radius: 40px;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 0.9rem;
+      font-weight: 500;
+      letter-spacing: 2px;
+      cursor: pointer;
+      z-index: 100;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 0 15px rgba(0, 194, 255, 0.2);
+    }
+
+    .back-button:hover {
+      background: rgba(0, 194, 255, 0.15);
+      border-color: #00c2ff;
+      transform: translateX(-3px);
+      box-shadow: 0 0 25px rgba(0, 194, 255, 0.4);
+    }
+    
+    .shell {
+      width: 100%;
+      max-width: 960px;
+      background: linear-gradient(145deg, #050816 0, #02040b 40%, #050816 100%);
+      border-radius: 18px;
+      border: 1px solid #0b1220;
+      box-shadow:
+        0 0 0 1px #0b1220,
+        0 24px 80px rgba(0, 0, 0, 0.9),
+        0 0 60px rgba(0, 194, 255, 0.08);
+      padding: 24px 20px 18px;
+      position: relative;
+      overflow: hidden;
+      margin-top: 20px;
+    }
+    .shell::before {
+      content: "";
+      position: absolute;
+      inset: -40%;
+      background:
+        radial-gradient(circle at 0 0, rgba(0, 194, 255, 0.12), transparent 55%),
+        radial-gradient(circle at 100% 0, rgba(0, 255, 200, 0.08), transparent 55%);
+      opacity: 0.7;
+      pointer-events: none;
+    }
+    .inner {
+      position: relative;
+      z-index: 1;
+    }
+    header {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 14px;
+    }
+    .brand {
+      font-size: 1.4rem;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--accent);
+      text-indent: 0.35em;
+    }
+    .subtitle {
+      font-size: 0.78rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-indent: 0.22em;
+    }
+    .tagline {
+      margin-top: 8px;
+      font-size: 0.8rem;
+      color: var(--text-soft);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .tagline span {
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(2, 8, 23, 0.9);
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    main {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      font-size: 0.9rem;
+    }
+    section {
+      border-radius: var(--radius);
+      background: radial-gradient(circle at top left, #071021 0, #050816 40%, #02040b 100%);
+      border: 1px solid var(--border);
+      padding: 12px 12px 10px;
+      position: relative;
+      overflow: hidden;
+    }
+    section::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(0, 194, 255, 0.08), transparent 40%);
+      opacity: 0.5;
+      pointer-events: none;
+    }
+    section > * {
+      position: relative;
+      z-index: 1;
+    }
+    .section-title {
+      font-size: 0.78rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+    .section-sub {
+      font-size: 0.78rem;
+      color: var(--text-soft);
+      margin-bottom: 8px;
+    }
+    p {
+      color: var(--text-soft);
+      line-height: 1.5;
+      margin-bottom: 6px;
+    }
+    ul {
+      list-style: none;
+      margin-top: 4px;
+    }
+    li {
+      position: relative;
+      padding-left: 14px;
+      margin-bottom: 3px;
+      color: var(--text-soft);
+      font-size: 0.86rem;
+    }
+    li::before {
+      content: "•";
+      position: absolute;
+      left: 3px;
+      top: 0;
+      color: var(--accent);
+      font-size: 0.8rem;
+    }
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .pill {
+      padding: 3px 9px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(2, 8, 23, 0.9);
+      font-size: 0.72rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .quote {
+      margin-top: 6px;
+      padding-left: 10px;
+      border-left: 2px solid var(--accent-soft);
+      font-size: 0.86rem;
+      color: var(--text-soft);
+      font-style: italic;
+    }
+    footer {
+      margin-top: 16px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .author {
+      font-weight: 500;
+      color: var(--text-soft);
+    }
+    .footer-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .footer-tag {
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(2, 8, 23, 0.9);
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    @media (max-width: 640px) {
+      .shell { padding: 18px 14px 14px; margin-top: 70px; }
+      header { margin-bottom: 16px; }
+      .brand { font-size: 1.2rem; }
+      .back-button {
+        top: 15px;
+        left: 15px;
+        padding: 8px 18px;
+        font-size: 0.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <button class="back-button" onclick="goBackToMain()">
+    ← ZURÜCK
+  </button>
+
+  <div class="shell">
+    <div class="inner">
+      <header>
+        <div class="brand">O·C·E·A·N</div>
+        <div class="subtitle">TSDE · ABOUT · SPEZIFIKATION</div>
+        <div class="tagline">
+          <span>ENGINE</span>
+          <span>MOTION SYNTH</span>
+          <span>FRAMEFREI</span>
+          <span>TIME STRETCH</span>
+        </div>
+      </header>
+
+      <main>
+        <section>
+          <div class="section-title">O·C·E·A·N FRAMEWORK</div>
+          <p>
+            O·C·E·A·N ist das visuelle und konzeptionelle Framework rund um TSDE.
+            Es verbindet Engine‑Technologie, Motion‑Synthesis und ein universelles Zeitmodell
+            zu einem einheitlichen System. Die Designsprache ist bewusst reduziert:
+            Schwarz‑Blau, Neon‑Akzente, klare Geometrie, deterministische Strukturen.
+          </p>
+        </section>
+
+        <section>
+          <div class="section-title">TSDE · TEMPORAL SPLINE DRIVEN ENGINE</div>
+          <p>
+            TSDE ist ein framefreies CGI‑System, das Bewegung nicht über Bilder pro Sekunde,
+            sondern über kontinuierliche Geschwindigkeitsfunktionen definiert. Die Engine
+            arbeitet deterministisch mit einem festen 240 Hz‑Tick und erzeugt Motion durch
+            splinebasierte v(t)‑Kurven, die in Echtzeit integriert werden.
+          </p>
+          <p>
+            Das Ergebnis sind absolut stabile, rekonstruktierbare Bewegungen – ohne Keyframes,
+            ohne Frame‑Interpolation und ohne Frame‑Pacing‑Artefakte.
+          </p>
+
+          <div class="section-sub">Kernprinzipien</div>
+          <ul>
+            <li>Bewegung = Geschwindigkeit × Zeit, nicht Frames</li>
+            <li>deterministische 240 Hz‑Engine + separater 240 Hz‑Recorder</li>
+            <li>splinebasierte Geschwindigkeitskurven pro Track</li>
+            <li>monotone Interpolation (PCHIP) ohne Overshoots</li>
+            <li>bytegenaue Original‑Zeitachse, keine Normalisierung</li>
+            <li>Time Stretch 0.1× bis 10× ohne Neuaufnahme</li>
+            <li>beliebig viele Tracks, Gruppen und Pedal‑Kurven</li>
+          </ul>
+
+          <div class="section-sub" style="margin-top:8px;">Unterschied zu klassischer CGI</div>
+          <ul>
+            <li>keine Frames, keine Keyframes</li>
+            <li>keine FPS‑Abhängigkeit, keine Frame‑Interpolation</li>
+            <li>keine Ruckler durch Frame‑Pacing</li>
+            <li>jede Bewegung ist deterministisch reproduzierbar</li>
+          </ul>
+
+          <div class="quote">
+            Kurzfassung für Gamer: TSDE ist CGI ohne Frames. Bewegung entsteht aus Geschwindigkeit,
+            nicht aus 30/60/120 FPS.
+          </div>
+        </section>
+
+        <section>
+          <div class="section-title">TSDE MOTION SYNTH EDITOR</div>
+          <p>
+            Der TSDE Motion Synth Editor ist das Werkzeug zur Bearbeitung, Analyse und Synthese
+            von TSDE‑Daten. Er bildet die komplette Engine‑Logik ab und arbeitet 1:1 deterministisch
+            zur Live‑Engine.
+          </p>
+          <ul>
+            <li>vollständiger Session‑Import mit hierarchischer Track‑Struktur</li>
+            <li>Drag‑and‑Drop‑Sortierung von Gruppen und Tracks</li>
+            <li>eingebetteter VTK‑3D‑Viewport für Splines, Gruppen, Marker</li>
+            <li>deterministische Live‑Preview mit identischer Sampling‑Logik</li>
+            <li>Kamera‑Rig‑System mit Pedal‑Kurven und Marker‑Follow</li>
+            <li>Timeline‑basierte Motion‑Synthese mit Geschwindigkeits‑Kurven</li>
+            <li>Time‑Stretch‑Export direkt aus einem Recording</li>
+          </ul>
+        </section>
+
+        <section>
+          <div class="section-title">PHILOSOPHIE</div>
+          <p>
+            Die Welt ist framefrei. Bewegung entsteht aus Zeit und Geschwindigkeit, nicht aus
+            30/60/120 Bildern pro Sekunde. TSDE bildet diese Realität technisch ab:
+            kontinuierlich, deterministisch, reproduzierbar.
+          </p>
+          <div class="pill-row">
+            <span class="pill">FRAMEFREI</span>
+            <span class="pill">DETERMINISTISCH</span>
+            <span class="pill">KONTINUIERLICH</span>
+            <span class="pill">ZEITGETRIEBEN</span>
+          </div>
+        </section>
+
+        <section>
+          <div class="section-title">AUTOR</div>
+          <p>
+            <strong>Benjamin Thorsten Unger</strong><br>
+            Geboren 10.04.1987, Nürtingen<br>
+            Entwickler der TSDE‑Engine, des Motion Synth Editors und des O·C·E·A·N Frameworks.
+          </p>
+        </section>
+      </main>
+
+      <footer>
+        <div class="author">© 2025–2026 · Benjamin Unger · TSDE v0.9 Beta</div>
+        <div class="footer-row">
+          <span class="footer-tag">TSDE · LIVE ENGINE</span>
+          <span class="footer-tag">MOTION SYNTH EDITOR</span>
+          <span class="footer-tag">O·C·E·A·N FRAMEWORK</span>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    function goBackToMain() {
+      window.location.href = 'index.html';
+    }
+  </script>
+</body>
+</html>

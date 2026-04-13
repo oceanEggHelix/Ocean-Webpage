@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Datenschutzerklärung | O.C.E.A.N</title>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    min-height: 100vh;
+    background: radial-gradient(circle at center, #001122, #000011, #000000);
+    font-family: 'Comfortaa', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: #eef5ff;
+    padding: 40px 20px;
+    position: relative;
+  }
+
+  /* Helix Animation Canvas */
+  #helix-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  /* Container für den Text */
+  .legal-container {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    background: rgba(0, 17, 34, 0.6);
+    backdrop-filter: blur(8px);
+    border-radius: 24px;
+    padding: 40px 50px;
+    border: 1px solid rgba(0, 255, 170, 0.2);
+    box-shadow: 0 0 30px rgba(0, 255, 170, 0.1);
+  }
+
+  /* Zurück-Button im OCEAN-Design */
+  .back-button {
+    position: fixed;
+    top: 30px;
+    left: 30px;
+    background: rgba(0, 17, 34, 0.7);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(0, 255, 170, 0.4);
+    color: #00ffaa;
+    padding: 12px 24px;
+    border-radius: 40px;
+    font-family: 'Comfortaa', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    letter-spacing: 2px;
+    cursor: pointer;
+    z-index: 100;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 0 15px rgba(0, 255, 170, 0.2);
+  }
+
+  .back-button:hover {
+    background: rgba(0, 255, 170, 0.15);
+    border-color: #00ffaa;
+    transform: translateX(-3px);
+    box-shadow: 0 0 25px rgba(0, 255, 170, 0.4);
+  }
+
+  /* Überschriften im Neon-Stil */
+  h1 {
+    font-size: 2.2rem;
+    font-weight: 500;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    background: linear-gradient(135deg, #00ffaa, #00aaff, #00ffaa);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 0 20px rgba(0, 255, 170, 0.3);
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(0, 255, 170, 0.3);
+  }
+
+  h2 {
+    font-size: 1.3rem;
+    font-weight: 500;
+    color: #00ffaa;
+    margin-top: 25px;
+    margin-bottom: 12px;
+    letter-spacing: 1px;
+  }
+
+  .legal-text {
+    white-space: pre-line;
+    line-height: 1.7;
+    color: #d0e4ff;
+  }
+
+  .legal-text p {
+    margin-bottom: 15px;
+  }
+
+  .legal-text strong {
+    color: #00ffaa;
+    font-weight: 600;
+  }
+
+  /* Liste Styling */
+  ul {
+    margin: 10px 0 15px 25px;
+  }
+
+  li {
+    margin-bottom: 6px;
+    color: #c0d4ff;
+  }
+
+  /* Datum am Ende */
+  .footer-note {
+    margin-top: 35px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(0, 255, 170, 0.2);
+    font-size: 0.8rem;
+    text-align: center;
+    color: #7a9bc0;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .legal-container {
+      padding: 25px 20px;
+      margin-top: 70px;
+    }
+    
+    .back-button {
+      top: 15px;
+      left: 15px;
+      padding: 8px 18px;
+      font-size: 0.8rem;
+    }
+    
+    h1 {
+      font-size: 1.6rem;
+      letter-spacing: 2px;
+    }
+    
+    h2 {
+      font-size: 1.1rem;
+    }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="helix-bg"></canvas>
+
+<button class="back-button" onclick="goBackToMain()">
+  ← ZURÜCK
+</button>
+
+<div class="legal-container">
+  <h1>Datenschutzerklärung</h1>
+  
+  <div class="legal-text">
+    <h2>1. Verantwortlicher</h2>
+    <p>Benjamin Unger<br>
+    Weinbergstraße 74<br>
+    73262 Reichenbach an der Fils<br>
+    E‑Mail: benjaminu@live.de</p>
+
+    <h2>2. Erhebung und Speicherung personenbezogener Daten</h2>
+    <p>• Server‑Logfiles (IP‑Adresse, Browser, Uhrzeit)<br>
+    • Technisch notwendige Cookies</p>
+
+    <h2>3. Zweck der Verarbeitung</h2>
+    <p>• Bereitstellung der Website<br>
+    • Sicherheit<br>
+    • Kommunikation</p>
+
+    <h2>4. Rechtsgrundlagen</h2>
+    <p>Art. 6 Abs. 1 lit. f DSGVO</p>
+
+    <h2>5. Weitergabe von Daten</h2>
+    <p>Keine Weitergabe außer an Hosting‑Provider.</p>
+
+    <h2>6. Hosting</h2>
+    <p>STRATO AG<br>
+    Otto-Ostrowski-Straße 7<br>
+    10249 Berlin</p>
+
+    <h2>7. Cookies</h2>
+    <p>Nur technisch notwendige Cookies.</p>
+
+    <h2>8. Rechte der Nutzer</h2>
+    <p>• Auskunft<br>
+    • Löschung<br>
+    • Berichtigung<br>
+    • Einschränkung<br>
+    • Widerspruch<br>
+    • Datenübertragbarkeit</p>
+  </div>
+  
+  <div class="footer-note">
+    Stand: März 2025
+  </div>
+</div>
+
+<script>
+  // Helix Animation (gleiche wie auf der Hauptseite, aber dezent)
+  const canvas = document.getElementById('helix-bg');
+  const ctx = canvas.getContext('2d');
+  
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  
+  // Einfache Helix-Punkte
+  let particles = [];
+  const particleCount = 60;
+  
+  function initParticles() {
+    for (let i = 0; i < particleCount; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        radius: Math.random() * 2 + 1,
+        speedX: (Math.random() - 0.5) * 0.3,
+        speedY: (Math.random() - 0.5) * 0.2,
+        opacity: Math.random() * 0.3 + 0.1
+      });
+    }
+  }
+  
+  function animate() {
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Hintergrund
+    ctx.fillStyle = 'rgba(0, 0, 20, 0.05)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Punkte zeichnen
+    particles.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(0, 255, 170, ${p.opacity})`;
+      ctx.fill();
+      
+      // Bewegung
+      p.x += p.speedX;
+      p.y += p.speedY;
+      
+      // Wrap around
+      if (p.x < 0) p.x = canvas.width;
+      if (p.x > canvas.width) p.x = 0;
+      if (p.y < 0) p.y = canvas.height;
+      if (p.y > canvas.height) p.y = 0;
+    });
+    
+    requestAnimationFrame(animate);
+  }
+  
+  window.addEventListener('resize', () => {
+    resizeCanvas();
+    particles = [];
+    initParticles();
+  });
+  
+  resizeCanvas();
+  initParticles();
+  animate();
+  
+  function goBackToMain() {
+    window.location.href = '../index.html';
+  }
+</script>
+
+</body>
+</html>

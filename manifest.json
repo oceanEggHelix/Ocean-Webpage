@@ -1,0 +1,25 @@
+{
+  "name": "Biomorphic O.C.E.A.N",
+  "short_name": "O.C.E.A.N",
+  "description": "Organic Continuum - off Egg - Algorithmic Nesting – TSDE Motion Synth Portal",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0c14",
+  "theme_color": "#0a0c14",
+  "lang": "de",
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

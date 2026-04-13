@@ -1,0 +1,2035 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>O.C.E.A.N 3D-Animator</title>
+  <style>
+    /* Copyright Benjamin Unger 22.01.2026 */
+
+    * { box-sizing: border-box; }
+    body { margin: 0; overflow: hidden; background: #000; touch-action: none; }
+    canvas { display: block; width: 100vw; height: 100vh; }
+
+    /* ── ZURÜCK BUTTON ── */
+    .dna-back-btn {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: white;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-family: Arial, sans-serif;
+      font-size: 13px;
+      cursor: pointer;
+      z-index: 1000;
+      transition: all 0.2s ease;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+    }
+    .dna-back-btn:hover { background: rgba(255,255,255,0.2); }
+
+    /* ── FPS ── */
+    .fps-counter {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      color: #00ff88;
+      background: rgba(0,0,0,0.8);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      font-weight: bold;
+      z-index: 1000;
+      border: 1px solid rgba(0,255,136,0.3);
+      pointer-events: none;
+    }
+
+    .fps-counter.low { color: #ff4444; border-color: rgba(255,68,68,0.3); }
+    .fps-counter.medium { color: #ffaa00; border-color: rgba(255,170,0,0.3); }
+    .fps-counter.high { color: #00ff88; border-color: rgba(0,255,136,0.3); }
+
+    /* ══════════════════════════════════════
+       DESKTOP LAYOUT (> 768px)
+    ══════════════════════════════════════ */
+
+    .controls-left, .controls-right {
+      position: absolute;
+      top: 60px;
+      color: white;
+      background: rgba(0,0,0,0.82);
+      padding: 14px;
+      border-radius: 10px;
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.1);
+      min-width: 290px;
+      max-height: calc(100vh - 80px);
+      overflow-y: auto;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.2) transparent;
+    }
+    .controls-left { left: 10px; }
+    .controls-right { right: 10px; top: 10px; padding-top: 40px; }
+
+    .controls-left.minimized { transform: translateX(-92%); opacity: 0.3; }
+    .controls-right.minimized { transform: translateX(92%); opacity: 0.3; }
+
+    .minimize-btn {
+      position: absolute;
+      top: 10px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      min-height: 28px;
+    }
+    .controls-left .minimize-btn { right: 10px; }
+    .controls-right .minimize-btn { left: 10px; }
+
+    /* ── OVERLAY TOGGLE (Desktop) ── */
+    .overlay-toggle-btn {
+      position: absolute;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: white;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      z-index: 1000;
+      font-size: 12px;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+    }
+
+    /* ══════════════════════════════════════
+       MOBILE LAYOUT (≤ 768px)
+    ══════════════════════════════════════ */
+
+    @media (max-width: 768px) {
+
+      /* Desktop panels + back button verstecken */
+      .controls-left,
+      .controls-right,
+      .overlay-toggle-btn,
+      .dna-back-btn { display: none !important; }
+
+
+      /* FPS Counter auf Mobile nach oben rechts */
+      .fps-counter {
+        top: 60px;
+        right: 10px;
+        bottom: auto;
+        left: auto;
+        font-size: 10px;
+        padding: 4px 8px;
+        z-index: 600;
+      }
+      
+      /* ── MOBILE TOP BAR ── */
+      .mobile-topbar {
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 52px;
+        background: rgba(0,0,0,0.85);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 12px;
+        z-index: 500;
+      }
+      .mobile-topbar .title-text {
+        font-family: Arial, sans-serif;
+        font-size: 13px;
+        font-weight: bold;
+        background: linear-gradient(90deg, #ff0080, #00ff88);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .mobile-topbar .icon-btn {
+        background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.25);
+        color: white;
+        border-radius: 8px;
+        font-size: 12px;
+        padding: 6px 10px;
+        min-width: 44px;
+        min-height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        gap: 4px;
+      }
+      .mobile-topbar .icon-btn.active {
+        background: rgba(0,255,136,0.25);
+        border-color: #00ff88;
+        color: #00ff88;
+      }
+
+      /* ── MOBILE BOTTOM SHEET ── */
+      .mobile-sheet {
+        position: absolute;
+        bottom: 0; left: 0; right: 0;
+        background: rgba(0,0,0,0.93);
+        backdrop-filter: blur(16px);
+        border-top: 1px solid rgba(255,255,255,0.12);
+        border-radius: 16px 16px 0 0;
+        z-index: 400;
+        transform: translateY(calc(100% - 90px));
+        transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        max-height: 72vh;
+        display: flex;
+        flex-direction: column;
+      }
+      .mobile-sheet.open { transform: translateY(0); }
+      .mobile-sheet.hidden { transform: translateY(100%); }
+
+      /* Drag handle */
+      .sheet-handle-area {
+        padding: 10px 0 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+      .sheet-handle {
+        width: 40px; height: 4px;
+        background: rgba(255,255,255,0.3);
+        border-radius: 2px;
+        margin-bottom: 6px;
+      }
+
+      /* ── TAB BAR ── */
+      .sheet-tabs {
+        display: flex;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        flex-shrink: 0;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .sheet-tabs::-webkit-scrollbar { display: none; }
+      .sheet-tab {
+        flex: 1;
+        min-width: 60px;
+        padding: 10px 6px;
+        background: transparent;
+        border: none;
+        color: rgba(255,255,255,0.5);
+        font-family: Arial, sans-serif;
+        font-size: 10px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        border-bottom: 2px solid transparent;
+        white-space: nowrap;
+      }
+      .sheet-tab.active {
+        color: #00ff88;
+        border-bottom-color: #00ff88;
+      }
+      .sheet-tab-icon { font-size: 16px; display: block; margin-bottom: 2px; }
+
+      /* ── SHEET CONTENT ── */
+      .sheet-content {
+        overflow-y: auto;
+        flex: 1;
+        padding: 12px;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255,255,255,0.2) transparent;
+      }
+      .tab-panel { display: none; }
+      .tab-panel.active { display: block; }
+
+      /* ── MOBILE CONTROLS ── */
+      .m-section {
+        margin-bottom: 14px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+      }
+      .m-section:last-child { border-bottom: none; }
+      .m-label {
+        font-family: Arial, sans-serif;
+        font-size: 10px;
+        color: #aaccff;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .m-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .m-row-label {
+        font-family: Arial, sans-serif;
+        font-size: 11px;
+        color: rgba(255,255,255,0.7);
+        min-width: 85px;
+      }
+      .m-slider {
+        flex: 1;
+        height: 6px;
+        background: rgba(255,255,255,0.15);
+        border-radius: 3px;
+        outline: none;
+        -webkit-appearance: none;
+        cursor: pointer;
+      }
+      .m-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 22px; height: 22px;
+        border-radius: 50%;
+        background: #00ff88;
+        cursor: pointer;
+        box-shadow: 0 0 6px rgba(0,255,136,0.4);
+      }
+      .m-slider::-moz-range-thumb {
+        width: 22px; height: 22px;
+        border-radius: 50%;
+        background: #00ff88;
+        cursor: pointer;
+        border: none;
+      }
+      .m-val {
+        font-family: 'Courier New', monospace;
+        font-size: 11px;
+        color: #00ff88;
+        min-width: 36px;
+        text-align: right;
+      }
+      .m-num {
+        width: 56px;
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.2);
+        color: white;
+        padding: 6px;
+        border-radius: 6px;
+        font-size: 12px;
+        text-align: center;
+      }
+
+      /* Button grids */
+      .m-btn-grid {
+        display: grid;
+        gap: 6px;
+      }
+      .m-btn-grid.cols2 { grid-template-columns: 1fr 1fr; }
+      .m-btn-grid.cols3 { grid-template-columns: 1fr 1fr 1fr; }
+
+      .m-btn {
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.2);
+        color: white;
+        padding: 6px 4px;
+        border-radius: 6px;
+        font-family: Arial, sans-serif;
+        font-size: 10px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        min-height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .m-btn:active { transform: scale(0.96); background: rgba(255,255,255,0.15); }
+      .m-btn.active { background: rgba(0,255,136,0.2); border-color: #00ff88; color: #00ff88; }
+      .m-btn.danger { border-color: rgba(255,68,68,0.4); }
+      .m-btn.danger:active { background: rgba(255,68,68,0.15); }
+
+      /* CSV Load buttons */
+      .m-csv-btn {
+        background: linear-gradient(135deg, rgba(255,0,128,0.2), rgba(0,255,136,0.2));
+        border: 1px solid rgba(255,255,255,0.25);
+      }
+
+      /* Mode switch */
+      .m-mode-switch {
+        display: flex;
+        gap: 6px;
+        background: rgba(255,255,255,0.06);
+        border-radius: 10px;
+        padding: 4px;
+      }
+      .m-mode-btn {
+        flex: 1;
+        padding: 5px;
+        background: transparent;
+        border: 1px solid transparent;
+        color: rgba(255,255,255,0.6);
+        border-radius: 8px;
+        font-family: Arial, sans-serif;
+        font-size: 10px;
+        cursor: pointer;
+        transition: all 0.2s;
+        min-height: 30px;
+      }
+      .m-mode-btn.active {
+        background: linear-gradient(135deg, rgba(255,0,128,0.35), rgba(0,255,136,0.35));
+        border-color: rgba(255,255,255,0.2);
+        color: white;
+      }
+
+      /* Progress bar in mobile */
+      .m-progress-bar {
+        width: 100%;
+        height: 8px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 8px;
+      }
+      .m-progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #ff0080, #00ff88);
+        width: 0%;
+        transition: width 0.2s;
+        border-radius: 4px;
+      }
+
+      /* Status pill */
+      .m-status-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 10px;
+      }
+      .m-pill {
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 20px;
+        padding: 4px 10px;
+        font-family: Arial, sans-serif;
+        font-size: 10px;
+        color: rgba(255,255,255,0.6);
+      }
+      .m-pill span { color: #00ff88; font-weight: bold; }
+
+      /* Color pickers in mobile */
+      .m-color-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+      .m-color-label { font-size: 11px; color: rgba(255,255,255,0.7); flex: 1; }
+      .m-color-pick {
+        width: 40px; height: 32px;
+        border: 1px solid rgba(255,255,255,0.3);
+        border-radius: 6px;
+        cursor: pointer;
+      }
+
+      /* BG buttons */
+      .m-bg-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+      }
+      .m-bg-btn {
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.2);
+        color: rgba(255,255,255,0.8);
+        padding: 10px;
+        border-radius: 8px;
+        font-size: 11px;
+        cursor: pointer;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+      }
+      .m-bg-btn.active { background: rgba(0,255,136,0.2); border-color: #00ff88; color: #00ff88; }
+
+      /* Section title */
+      .m-section-title {
+        font-size: 11px;
+        color: #aaccff;
+        font-weight: bold;
+        margin: 10px 0 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      /* DNA-only panel toggle */
+      .m-dna-only { display: none; }
+      .dna-mode .m-dna-only { display: block; }
+
+      /* Shortcut hint */
+      .m-hint {
+        font-size: 10px;
+        color: rgba(255,255,255,0.35);
+        text-align: center;
+        padding: 8px 0;
+      }
+    }
+
+    /* ══ SHARED COMPONENT STYLES (Desktop + reused) ══ */
+
+    .progress-bar {
+      width: 100%; height: 6px;
+      background: #333; border-radius: 3px;
+      margin-top: 5px; overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #ff0080, #00ff88);
+      width: 0%; transition: width 0.3s;
+    }
+    .progress-slider-container {
+      display: flex; align-items: center; gap: 10px; margin-top: 10px;
+    }
+    .progress-slider {
+      flex: 1; height: 6px; background: #333; border-radius: 3px;
+      outline: none; -webkit-appearance: none;
+    }
+    .progress-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: #00ff88; cursor: pointer;
+    }
+    .progress-slider::-moz-range-thumb {
+      width: 16px; height: 16px; border-radius: 50%;
+      background: #00ff88; cursor: pointer; border: none;
+    }
+    .title {
+      font-size: 14px; font-weight: bold; margin-bottom: 8px;
+      background: linear-gradient(90deg, #ff0080, #00ff88);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .strand-info { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; font-size: 10px; }
+    .strand-item { display: flex; align-items: center; gap: 6px; }
+    .strand-color { width: 8px; height: 8px; border-radius: 50%; }
+    .ccw1 { background: #ff2266; }
+    .cw1 { background: #22aaff; }
+    .status-item { margin-bottom: 5px; }
+    .status-label { color: #aaccff; display: inline-block; width: 100px; }
+    .status-value { color: #00ff88; font-weight: 600; }
+    .tube-controls { margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); }
+    .tube-param { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .tube-label { font-size: 10px; color: #aaccff; min-width: 80px; }
+    .tube-input { width: 60px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 4px; border-radius: 4px; font-size: 10px; }
+    .tube-slider { flex: 1; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; outline: none; -webkit-appearance: none; }
+    .tube-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #00ff88; cursor: pointer; }
+    .background-selector { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.2); }
+    .bg-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 8px; }
+    .bg-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 6px; border-radius: 5px; cursor: pointer; font-size: 10px; transition: all 0.3s; }
+    .bg-btn:hover { background: rgba(255,255,255,0.2); }
+    .bg-btn.active { background: linear-gradient(135deg, #ff0080, #00ff88); border-color: transparent; }
+    .mode-switch { margin-bottom: 15px; display: flex; gap: 5px; background: rgba(255,255,255,0.1); border-radius: 8px; padding: 5px; }
+    .mode-btn { flex: 1; padding: 8px; background: transparent; border: 1px solid transparent; color: white; border-radius: 5px; cursor: pointer; font-size: 11px; text-align: center; transition: all 0.3s; }
+    .mode-btn.active { background: linear-gradient(135deg, #ff0080, #00ff88); border-color: transparent; }
+    .mode-btn:hover:not(.active) { background: rgba(255,255,255,0.1); }
+    .dna-method-controls { margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); display: none; }
+    .dna-param { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .dna-label { font-size: 10px; color: #aaccff; min-width: 80px; }
+    .dna-input { width: 60px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 4px; border-radius: 4px; font-size: 10px; }
+    .dna-slider { flex: 1; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; outline: none; -webkit-appearance: none; }
+    .dna-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #00ff88; cursor: pointer; }
+    .strand-selection { margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); }
+    .strand-options { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-top: 8px; }
+    .strand-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 6px; border-radius: 5px; cursor: pointer; font-size: 9px; text-align: center; transition: all 0.3s; }
+    .strand-btn.active { background: rgba(0,255,136,0.3); border-color: #00ff88; }
+    .strand-btn:hover:not(.active) { background: rgba(255,255,255,0.2); }
+    .connection-controls { margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); }
+    .connection-section { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .section-title { font-size: 11px; color: #aaccff; margin-bottom: 8px; font-weight: bold; }
+    .effects-controls { margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); }
+    .effects-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+    .effect-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px; border-radius: 5px; cursor: pointer; font-size: 9px; text-align: center; transition: all 0.3s; }
+    .effect-btn.active { background: rgba(255,0,128,0.3); border-color: #ff0080; }
+    .effect-btn:hover:not(.active) { background: rgba(255,255,255,0.2); }
+    .grid-controls { margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); display: none; }
+    .checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .checkbox-label { font-size: 10px; color: #aaccff; }
+    .grid-advanced { margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1); display: none; }
+    .gradient-editor { margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); display: none; }
+    .color-picker-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .color-label { font-size: 10px; color: #aaccff; min-width: 60px; }
+    .color-picker { width: 30px; height: 30px; border: 2px solid rgba(255,255,255,0.3); border-radius: 5px; cursor: pointer; }
+    .gradient-direction { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 8px; }
+    .dir-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 5px; border-radius: 4px; cursor: pointer; font-size: 9px; text-align: center; }
+    .dir-btn.active { background: rgba(0,255,136,0.3); border-color: #00ff88; }
+    .preview-box { width: 100%; height: 40px; border-radius: 5px; margin-top: 8px; border: 1px solid rgba(255,255,255,0.3); }
+    .csv-buttons { display: flex; gap: 5px; margin-top: 10px; }
+    .csv-btn { flex: 1; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 6px; border-radius: 5px; cursor: pointer; font-size: 10px; text-align: center; }
+    .csv-btn:hover { background: rgba(255,255,255,0.2); }
+  </style>
+</head>
+<body>
+
+  <!-- ZURÜCK BUTTON -->
+  <button class="dna-back-btn" onclick="goBackToMain()">← Zurück</button>
+
+  <!-- ══ DESKTOP: Overlay Toggle ══ -->
+  <button class="overlay-toggle-btn" onclick="window.toggleAllOverlays && window.toggleAllOverlays()">
+    📁 Overlays
+  </button>
+
+  <!-- ══ DESKTOP: Linke Controls ══ -->
+  <div class="controls-left" id="controls-left">
+    <button class="minimize-btn" onclick="window.toggleOverlay && window.toggleOverlay('controls-left')">◀</button>
+    <div class="title">O.C.E.A.N 3D-Animator</div>
+
+    <div class="csv-buttons">
+      <button class="csv-btn" onclick="window.loadCSVData && window.loadCSVData(true)">CCW CSV laden</button>
+      <button class="csv-btn" onclick="window.loadCSVData && window.loadCSVData(false)">CW CSV laden</button>
+    </div>
+
+    <div class="mode-switch">
+      <button class="mode-btn active" data-mode="tube">Tube Methode</button>
+      <button class="mode-btn" data-mode="dna">DNA Strang Methode</button>
+    </div>
+
+    <div class="status-item"><span class="status-label">Status:</span><span id="status" class="status-value">Initialisiere...</span></div>
+    <div class="status-item"><span class="status-label">Animation:</span><span id="animationInfo" class="status-value">Bereit</span></div>
+    <div class="status-item"><span class="status-label">Punkte CCW:</span><span id="pointsCCW" class="status-value">0</span></div>
+    <div class="status-item"><span class="status-label">Punkte CW:</span><span id="pointsCW" class="status-value">0</span></div>
+
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-slider-container">
+      <input type="range" id="progressSlider" min="0" max="100" value="0" class="progress-slider">
+      <span id="sliderValue" style="font-size:11px;color:#00ff88;min-width:35px;">0%</span>
+    </div>
+
+    <div class="tube-controls" id="tubeControls">
+      <div style="font-size:11px;color:#aaccff;margin-bottom:8px;"><span style="color:#00ff88;">●</span> Gemeinsame Kurve Parameter:</div>
+      <div class="tube-param">
+        <span class="tube-label">Start Durchm.:</span>
+        <input type="number" id="startDiameter" value="20.0" step="0.1" min="0.1" max="60.0" class="tube-input">
+        <input type="range" id="startDiameterSlider" value="20.0" min="0.1" max="60.0" step="0.1" class="tube-slider">
+      </div>
+      <div class="tube-param">
+        <span class="tube-label">End Durchm.:</span>
+        <input type="number" id="endDiameter" value="3.0" step="0.1" min="0.1" max="20.0" class="tube-input">
+        <input type="range" id="endDiameterSlider" value="3.0" min="0.1" max="20.0" step="0.1" class="tube-slider">
+      </div>
+      <div class="tube-param">
+        <span class="tube-label">Radial Seg.:</span>
+        <input type="number" id="radialSegments" value="16" step="1" min="3" max="32" class="tube-input">
+        <input type="range" id="radialSegmentsSlider" value="16" min="3" max="32" step="1" class="tube-slider">
+      </div>
+    </div>
+
+    <div class="dna-method-controls" id="dnaControls">
+      <div class="strand-selection">
+        <div style="font-size:10px;color:#aaccff;margin-bottom:5px;">Stränge anzeigen:</div>
+        <div class="strand-options">
+          <button class="strand-btn active" data-strands="both">Beide</button>
+          <button class="strand-btn" data-strands="ccw">Nur CCW</button>
+          <button class="strand-btn" data-strands="cw">Nur CW</button>
+        </div>
+      </div>
+      <div class="connection-section">
+        <div class="section-title">Hauptstrang Effekte</div>
+        <div class="dna-param">
+          <span class="dna-label">Helix Turns:</span>
+          <input type="number" id="dnaHelixTurns" value="20" step="1" min="0" max="60" class="dna-input">
+          <input type="range" id="dnaHelixTurnsSlider" value="20" min="0" max="60" step="1" class="dna-slider">
+        </div>
+        <div class="dna-param">
+          <span class="dna-label">Wave Speed:</span>
+          <input type="number" id="dnaWaveSpeed" value="0.0" step="0.1" min="0.0" max="5.0" class="dna-input">
+          <input type="range" id="dnaWaveSpeedSlider" value="0.0" min="0.0" max="5.0" step="0.1" class="dna-slider">
+        </div>
+        <div class="dna-param">
+          <span class="dna-label">Wave Amplitude:</span>
+          <input type="number" id="dnaWaveAmplitude" value="0.0" step="0.1" min="0.0" max="10.0" class="dna-input">
+          <input type="range" id="dnaWaveAmplitudeSlider" value="0.0" min="0.0" max="10.0" step="0.1" class="dna-slider">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ DESKTOP: Rechte Controls ══ -->
+  <div class="controls-right" id="controls-right">
+    <button class="minimize-btn" onclick="window.toggleOverlay && window.toggleOverlay('controls-right')">▶</button>
+
+    <div class="dna-method-controls" id="dnaControlsRight">
+      <div class="connection-section">
+        <div class="section-title">Verbindungs-Helix</div>
+        <div class="dna-param">
+          <span class="dna-label">Helix Durchm.:</span>
+          <input type="number" id="connectionHelixDiameter" value="2.5" step="0.1" min="0.5" max="30.0" class="dna-input">
+          <input type="range" id="connectionHelixDiameterSlider" value="2.5" min="0.5" max="30.0" step="0.1" class="dna-slider">
+        </div>
+        <div class="dna-param">
+          <span class="dna-label">Helix Steigung:</span>
+          <input type="number" id="connectionHelixPitch" value="8" step="1" min="1" max="60" class="dna-input">
+          <input type="range" id="connectionHelixPitchSlider" value="8" min="1" max="60" step="1" class="dna-slider">
+        </div>
+        <div class="dna-param">
+          <span class="dna-label">Schlange Durchm.:</span>
+          <input type="number" id="connectionSnakeDiameter" value="0.3" step="0.1" min="0.1" max="10" class="dna-input">
+          <input type="range" id="connectionSnakeDiameterSlider" value="0.3" min="0.1" max="10" step="0.1" class="dna-slider">
+        </div>
+      </div>
+      <div class="connection-section">
+        <div class="section-title">Verbindungs-Kugeln</div>
+        <div class="dna-param">
+          <span class="dna-label">Kugel Durchm.:</span>
+          <input type="number" id="connectionSphereDiameter" value="0.8" step="0.1" min="0.3" max="10.0" class="dna-input">
+          <input type="range" id="connectionSphereDiameterSlider" value="0.8" min="0.3" max="10.0" step="0.1" class="dna-slider">
+        </div>
+        <div class="dna-param">
+          <span class="dna-label">Verbindungs Abstand:</span>
+          <input type="number" id="connectionSpacing" value="15" step="1" min="8" max="30" class="dna-input">
+          <input type="range" id="connectionSpacingSlider" value="15" min="8" max="30" step="1" class="dna-slider">
+        </div>
+      </div>
+      <div class="connection-section">
+        <div class="section-title">DNA-Verbindungen</div>
+        <div class="dna-param">
+          <span class="dna-label">Verbindungs Durchm.:</span>
+          <input type="number" id="dnaConnectionDiameter" value="0.2" step="0.1" min="0.1" max="1.0" class="dna-input">
+          <input type="range" id="dnaConnectionDiameterSlider" value="0.2" min="0.1" max="1.0" step="0.1" class="dna-slider">
+        </div>
+        <div class="dna-param">
+          <span class="dna-label">Verbindungs Farbe:</span>
+          <input type="color" id="dnaConnectionColor" value="#ffffff" class="color-picker" style="width:50px;height:25px;">
+        </div>
+      </div>
+    </div>
+
+    <div class="effects-controls">
+      <div class="section-title">Visuelle Effekte (beide Modi)</div>
+      <div class="effects-grid">
+        <button class="effect-btn" data-effect="neon">Neon Leuchten</button>
+        <button class="effect-btn" data-effect="spikes">Virus Spikes</button>
+        <button class="effect-btn" data-effect="pulse">Pulsieren</button>
+        <button class="effect-btn" data-effect="wireframe">Wireframe</button>
+        <button class="effect-btn" data-effect="gradient">Farbverlauf</button>
+      </div>
+    </div>
+
+    <div class="background-selector">
+      <div style="font-size:11px;color:#aaccff;margin-bottom:5px;">Hintergrund:</div>
+      <div class="bg-buttons">
+        <button class="bg-btn active" data-bg="deepspace">Deep Space</button>
+        <button class="bg-btn" data-bg="grid">Grid</button>
+        <button class="bg-btn" data-bg="gradient">Custom Gradient</button>
+        <button class="bg-btn" data-bg="black">Schwarz</button>
+      </div>
+      <div class="grid-controls" id="gridControls">
+        <div style="font-size:11px;color:#aaccff;margin-bottom:8px;">Grid Einstellungen:</div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="advancedGrid" class="checkbox" style="width:14px;height:14px;">
+          <span class="checkbox-label">Erweiterte Grid-Einstellungen</span>
+        </div>
+        <div class="grid-advanced" id="gridAdvanced">
+          <div class="tube-param">
+            <span class="tube-label">Y Position:</span>
+            <input type="number" id="gridYPosition" value="-300" step="10" min="-500" max="0" class="tube-input">
+            <input type="range" id="gridYPositionSlider" value="-300" min="-500" max="0" step="10" class="tube-slider">
+          </div>
+          <div class="tube-param">
+            <span class="tube-label">Grid Größe:</span>
+            <input type="number" id="gridSize" value="500" step="50" min="100" max="1000" class="tube-input">
+            <input type="range" id="gridSizeSlider" value="500" min="100" max="1000" step="50" class="tube-slider">
+          </div>
+        </div>
+      </div>
+      <div class="gradient-editor" id="gradientEditor">
+        <div style="font-size:10px;color:#aaccff;margin-bottom:8px;">Farbverlauf bearbeiten:</div>
+        <div class="color-picker-row">
+          <span class="color-label">Farbe 1:</span>
+          <input type="color" id="color1" value="#000033" class="color-picker">
+        </div>
+        <div class="color-picker-row">
+          <span class="color-label">Farbe 2:</span>
+          <input type="color" id="color2" value="#001144" class="color-picker">
+        </div>
+        <div class="color-picker-row">
+          <span class="color-label">Farbe 3:</span>
+          <input type="color" id="color3" value="#002266" class="color-picker">
+        </div>
+        <div style="font-size:10px;color:#aaccff;margin:8px 0 5px;">Richtung:</div>
+        <div class="gradient-direction">
+          <button class="dir-btn active" data-dir="vertical">Vertikal</button>
+          <button class="dir-btn" data-dir="horizontal">Horizontal</button>
+        </div>
+        <div class="preview-box" id="gradientPreview"></div>
+      </div>
+    </div>
+
+    <div style="margin-top:10px;font-size:10px;color:#888;">
+      Leertaste: Pause | R: Reset | C: Kompletter Spline<br>
+      M: Mode wechseln | H: Overlays ausblenden<br>
+      Ctrl+1: CCW CSV | Ctrl+2: CW CSV
+    </div>
+    <div class="strand-info">
+      <div class="strand-item"><div class="strand-color ccw1"></div><span id="strand1Label">CCW Helix</span></div>
+      <div class="strand-item"><div class="strand-color cw1"></div><span id="strand2Label">CW Helix</span></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       MOBILE UI
+  ══════════════════════════════════════ -->
+
+  <!-- Mobile Top Bar -->
+  <div class="mobile-topbar" id="mobileTopbar" style="display:none;">
+    <button class="icon-btn" onclick="goBackToMain()">← Zurück</button>
+    <span class="title-text">O·C·E·A·N 3D</span>
+    <button class="icon-btn" id="mSheetToggle" onclick="toggleMobileSheet()">⚙ Controls</button>
+  </div>
+
+  <!-- Mobile Bottom Sheet -->
+  <div class="mobile-sheet" id="mobileSheet" style="display:none;">
+    <!-- Drag Handle -->
+    <div class="sheet-handle-area" id="sheetHandle">
+      <div class="sheet-handle"></div>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="sheet-tabs">
+      <button class="sheet-tab active" data-tab="status" onclick="switchTab('status')">
+        <span class="sheet-tab-icon">📊</span>Status
+      </button>
+      <button class="sheet-tab" data-tab="curve" onclick="switchTab('curve')">
+        <span class="sheet-tab-icon">〰</span>Kurve
+      </button>
+      <button class="sheet-tab" data-tab="dna" onclick="switchTab('dna')">
+        <span class="sheet-tab-icon">🧬</span>DNA
+      </button>
+      <button class="sheet-tab" data-tab="effects" onclick="switchTab('effects')">
+        <span class="sheet-tab-icon">✨</span>Effekte
+      </button>
+      <button class="sheet-tab" data-tab="scene" onclick="switchTab('scene')">
+        <span class="sheet-tab-icon">🌌</span>Szene
+      </button>
+    </div>
+
+    <!-- Sheet Content -->
+    <div class="sheet-content">
+
+      <!-- ── TAB: Status ── -->
+      <div class="tab-panel active" id="tab-status">
+        <div class="m-section">
+          <div class="m-label">Animation</div>
+          <div class="m-progress-bar"><div class="m-progress-fill" id="mProgressFill"></div></div>
+          <div class="m-row" style="margin-top:8px;">
+            <input type="range" id="mProgressSlider" min="0" max="100" value="0" class="m-slider">
+            <span class="m-val" id="mSliderVal">0%</span>
+          </div>
+          <div class="m-btn-grid cols3" style="margin-top: 6px; gap: 4px;">
+            <button class="m-btn" id="mPlayPauseBtn" onclick="toggleAnimation()" style="font-size: 14px; padding: 3px; min-height: 28px;">▶</button>
+            <button class="m-btn" onclick="resetAnimation()" style="font-size: 14px; padding: 3px; min-height: 28px;">↺</button>
+            <button class="m-btn" id="mCompleteBtn" onclick="toggleCompleteSpline()" style="font-size: 14px; padding: 3px; min-height: 28px;">⊡</button>
+          </div>
+        </div>
+
+        <div class="m-section">
+          <div class="m-label">Status</div>
+          <div class="m-status-pills">
+            <div class="m-pill">CCW: <span id="mPointsCCW">0</span></div>
+            <div class="m-pill">CW: <span id="mPointsCW">0</span></div>
+            <div class="m-pill">Anim: <span id="mAnimInfo" style="color:#00ff88;">Bereit</span></div>
+          </div>
+        </div>
+
+        <div class="m-section">
+          <div class="m-label">Modus</div>
+          <div class="m-mode-switch">
+            <button class="m-mode-btn active" data-mode="tube" onclick="setMobileMode('tube',this)">Tube</button>
+            <button class="m-mode-btn" data-mode="dna" onclick="setMobileMode('dna',this)">DNA Strang</button>
+          </div>
+        </div>
+
+        <div class="m-section">
+          <div class="m-label">CSV Daten laden</div>
+          <div class="m-btn-grid cols2">
+            <button class="m-btn m-csv-btn" onclick="window.loadCSVData && window.loadCSVData(true)">📂 CCW laden</button>
+            <button class="m-btn m-csv-btn" onclick="window.loadCSVData && window.loadCSVData(false)">📂 CW laden</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TAB: Kurve ── -->
+      <div class="tab-panel" id="tab-curve">
+        <div class="m-section">
+          <div class="m-label">Gemeinsame Kurvenparameter</div>
+          <div class="m-row">
+            <span class="m-row-label">Start Durchm.</span>
+            <input type="range" id="mStartDiam" min="0.1" max="60" step="0.1" value="20" class="m-slider"
+              oninput="syncParam('startDiameter','mStartDiam',this.value);document.getElementById('mStartDiamVal').textContent=parseFloat(this.value).toFixed(1)">
+            <span class="m-val" id="mStartDiamVal">20.0</span>
+          </div>
+          <div class="m-row">
+            <span class="m-row-label">End Durchm.</span>
+            <input type="range" id="mEndDiam" min="0.1" max="20" step="0.1" value="3" class="m-slider"
+              oninput="syncParam('endDiameter','mEndDiam',this.value);document.getElementById('mEndDiamVal').textContent=parseFloat(this.value).toFixed(1)">
+            <span class="m-val" id="mEndDiamVal">3.0</span>
+          </div>
+          <div class="m-row">
+            <span class="m-row-label">Radial Segmente</span>
+            <input type="range" id="mRadialSeg" min="3" max="32" step="1" value="16" class="m-slider"
+              oninput="syncParam('radialSegments','mRadialSeg',this.value);document.getElementById('mRadialSegVal').textContent=this.value">
+            <span class="m-val" id="mRadialSegVal">16</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TAB: DNA ── -->
+      <div class="tab-panel" id="tab-dna">
+        <div class="m-section">
+          <div class="m-label">Stränge anzeigen</div>
+          <div class="m-btn-grid cols3">
+            <button class="m-btn active" data-mstrands="both" onclick="setMobileStrands('both',this)">Beide</button>
+            <button class="m-btn" data-mstrands="ccw" onclick="setMobileStrands('ccw',this)">Nur CCW</button>
+            <button class="m-btn" data-mstrands="cw" onclick="setMobileStrands('cw',this)">Nur CW</button>
+          </div>
+        </div>
+
+        <div class="m-section">
+          <div class="m-label">Hauptstrang</div>
+          <div class="m-row">
+            <span class="m-row-label">Helix Turns</span>
+            <input type="range" id="mHelixTurns" min="0" max="60" step="1" value="20" class="m-slider"
+              oninput="syncDNA('helixTurns','dnaHelixTurns','mHelixTurns',this.value);document.getElementById('mHelixTurnsVal').textContent=this.value">
+            <span class="m-val" id="mHelixTurnsVal">20</span>
+          </div>
+          <div class="m-row">
+            <span class="m-row-label">Wave Speed</span>
+            <input type="range" id="mWaveSpeed" min="0" max="5" step="0.1" value="0" class="m-slider"
+              oninput="syncDNA('waveSpeed','dnaWaveSpeed','mWaveSpeed',this.value);document.getElementById('mWaveSpeedVal').textContent=parseFloat(this.value).toFixed(1)">
+            <span class="m-val" id="mWaveSpeedVal">0.0</span>
+          </div>
+          <div class="m-row">
+            <span class="m-row-label">Wave Amplitude</span>
+            <input type="range" id="mWaveAmp" min="0" max="10" step="0.1" value="0" class="m-slider"
+              oninput="syncDNA('waveAmplitude','dnaWaveAmplitude','mWaveAmp',this.value);document.getElementById('mWaveAmpVal').textContent=parseFloat(this.value).toFixed(1)">
+            <span class="m-val" id="mWaveAmpVal">0.0</span>
+          </div>
+        </div>
+
+        <div class="m-section">
+          <div class="m-label">Verbindungs-Helix</div>
+          <div class="m-row">
+            <span class="m-row-label">Helix Durchm.</span>
+            <input type="range" id="mConnHelixDiam" min="0.5" max="30" step="0.1" value="2.5" class="m-slider"
+              oninput="syncDNA('connectionHelixDiameter','connectionHelixDiameter','mConnHelixDiam',this.value);document.getElementById('mConnHelixDiamVal').textContent=parseFloat(this.value).toFixed(1)">
+            <span class="m-val" id="mConnHelixDiamVal">2.5</span>
+          </div>
+          <div class="m-row">
+            <span class="m-row-label">Helix Steigung</span>
+            <input type="range" id="mConnHelixPitch" min="1" max="60" step="1" value="8" class="m-slider"
+              oninput="syncDNA('connectionHelixPitch','connectionHelixPitch','mConnHelixPitch',this.value);document.getElementById('mConnHelixPitchVal').textContent=this.value">
+            <span class="m-val" id="mConnHelixPitchVal">8</span>
+          </div>
+          <div class="m-row">
+            <span class="m-row-label">Schlange Durchm.</span>
+            <input type="range" id="mSnakeDiam" min="0.1" max="10" step="0.1" value="0.3" class="m-slider"
+              oninput="syncDNA('connectionSnakeDiameter','connectionSnakeDiameter','mSnakeDiam',this.value);document.getElementById('mSnakeDiamVal').textContent=parseFloat(this.value).toFixed(1)">
+            <span class="m-val" id="mSnakeDiamVal">0.3</span>
+          </div>
+        </div>
+
+        <div class="m-section">
+          <div class="m-label">Kugeln &amp; Verbindungen</div>
+          <div class="m-row">
+            <span class="m-row-label">Kugel Durchm.</span>
+            <input type="range" id="mSphereDiam" min="0.3" max="10" step="0.1" value="0.8" class="m-slider"
+              oninput="syncDNA('connectionSphereDiameter','connectionSphereDiameter','mSphereDiam',this.value);document.getElementById('mSphereDiamVal').textContent=parseFloat(this.value).toFixed(1)">
+            <span class="m-val" id="mSphereDiamVal">0.8</span>
+          </div>
+          <div class="m-row">
+            <span class="m-row-label">Verb. Abstand</span>
+            <input type="range" id="mConnSpacing" min="8" max="30" step="1" value="15" class="m-slider"
+              oninput="syncDNA('connectionSpacing','connectionSpacing','mConnSpacing',this.value);document.getElementById('mConnSpacingVal').textContent=this.value">
+            <span class="m-val" id="mConnSpacingVal">15</span>
+          </div>
+          <div class="m-row">
+            <span class="m-row-label">Verb. Durchm.</span>
+            <input type="range" id="mConnDiam" min="0.1" max="1" step="0.1" value="0.2" class="m-slider"
+              oninput="syncDNA('dnaConnectionDiameter','dnaConnectionDiameter','mConnDiam',this.value);document.getElementById('mConnDiamVal').textContent=parseFloat(this.value).toFixed(1)">
+            <span class="m-val" id="mConnDiamVal">0.2</span>
+          </div>
+          <div class="m-color-row" style="margin-top:6px;">
+            <span class="m-color-label">Verbindungsfarbe</span>
+            <input type="color" value="#ffffff" class="m-color-pick"
+              oninput="document.getElementById('dnaConnectionColor').value=this.value;document.getElementById('dnaConnectionColor').dispatchEvent(new Event('input'))">
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TAB: Effekte ── -->
+      <div class="tab-panel" id="tab-effects">
+        <div class="m-section">
+          <div class="m-label">Visuelle Effekte</div>
+          <div class="m-btn-grid cols2">
+            <button class="m-btn" data-meffect="neon" onclick="toggleMobileEffect('neon',this)">✦ Neon</button>
+            <button class="m-btn" data-meffect="spikes" onclick="toggleMobileEffect('spikes',this)">⚡ Virus Spikes</button>
+            <button class="m-btn" data-meffect="pulse" onclick="toggleMobileEffect('pulse',this)">◎ Pulsieren</button>
+            <button class="m-btn" data-meffect="wireframe" onclick="toggleMobileEffect('wireframe',this)">⊞ Wireframe</button>
+            <button class="m-btn" data-meffect="gradient" onclick="toggleMobileEffect('gradient',this)">◑ Farbverlauf</button>
+          </div>
+        </div>
+        <div class="m-hint">Tippe auf einen Effekt um ihn an/aus zu schalten</div>
+      </div>
+
+      <!-- ── TAB: Szene ── -->
+      <div class="tab-panel" id="tab-scene">
+        <div class="m-section">
+          <div class="m-label">Hintergrund</div>
+          <div class="m-bg-grid">
+            <button class="m-bg-btn active" data-mbg="deepspace" onclick="setMobileBG('deepspace',this)">🌌 Deep Space</button>
+            <button class="m-bg-btn" data-mbg="grid" onclick="setMobileBG('grid',this)">⊞ Grid</button>
+            <button class="m-bg-btn" data-mbg="gradient" onclick="setMobileBG('gradient',this)">◑ Gradient</button>
+            <button class="m-bg-btn" data-mbg="black" onclick="setMobileBG('black',this)">■ Schwarz</button>
+          </div>
+        </div>
+
+        <div class="m-section" id="mGradEditor" style="display:none;">
+          <div class="m-label">Gradient Farben</div>
+          <div class="m-color-row">
+            <span class="m-color-label">Farbe 1</span>
+            <input type="color" value="#000033" class="m-color-pick"
+              oninput="document.getElementById('color1').value=this.value;document.getElementById('color1').dispatchEvent(new Event('input'))">
+          </div>
+          <div class="m-color-row">
+            <span class="m-color-label">Farbe 2</span>
+            <input type="color" value="#001144" class="m-color-pick"
+              oninput="document.getElementById('color2').value=this.value;document.getElementById('color2').dispatchEvent(new Event('input'))">
+          </div>
+          <div class="m-color-row">
+            <span class="m-color-label">Farbe 3</span>
+            <input type="color" value="#002266" class="m-color-pick"
+              oninput="document.getElementById('color3').value=this.value;document.getElementById('color3').dispatchEvent(new Event('input'))">
+          </div>
+          <div class="m-btn-grid cols2" style="margin-top:8px;">
+            <button class="m-btn active" onclick="document.querySelector('[data-dir=vertical]').click()">↕ Vertikal</button>
+            <button class="m-btn" onclick="document.querySelector('[data-dir=horizontal]').click()">↔ Horizontal</button>
+          </div>
+        </div>
+
+        <div class="m-hint">Pinch zum Zoomen · Drag zum Drehen</div>
+      </div>
+
+    </div><!-- /sheet-content -->
+  </div><!-- /mobile-sheet -->
+
+  <!-- FPS Counter -->
+  <div class="fps-counter high" id="fpsCounter">FPS: 60</div>
+
+  <script>
+    function goBackToMain() { window.location.href = 'index.html'; }
+
+    /* ══ MOBILE UI HELPERS ══ */
+
+    function isMobile() { return window.innerWidth <= 768; }
+
+    function applyLayout() {
+      const mob = isMobile();
+      document.getElementById('mobileTopbar').style.display = mob ? 'flex' : 'none';
+      document.getElementById('mobileSheet').style.display = mob ? 'flex' : 'none';
+    }
+
+    function switchTab(name) {
+      document.querySelectorAll('.sheet-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+    }
+
+    let sheetOpen = false;
+    function toggleMobileSheet() {
+      sheetOpen = !sheetOpen;
+      const s = document.getElementById('mobileSheet');
+      s.classList.toggle('open', sheetOpen);
+      s.classList.remove('hidden');
+      document.getElementById('mSheetToggle').classList.toggle('active', sheetOpen);
+    }
+
+    /* ── SWIPE UP/DOWN für Mobile Sheet ── */
+    (function() {
+      const sheet = document.getElementById('mobileSheet');
+      const handle = document.getElementById('sheetHandle');
+      if (!sheet || !handle) return;
+
+      let startY = 0, currentY = 0, isDragging = false, startSheetOpen = false;
+
+      // Aktuell sichtbare Höhe ermitteln
+      function getCollapsedOffset() {
+        return sheet.offsetHeight - 90; // nur Peek (90px sichtbar)
+      }
+
+      function onStart(clientY) {
+        isDragging = true;
+        startY = clientY;
+        currentY = clientY;
+        startSheetOpen = sheetOpen;
+        sheet.style.transition = 'none'; // Transition während Drag deaktivieren
+      }
+
+      function onMove(clientY) {
+        if (!isDragging) return;
+        const delta = clientY - startY;
+        currentY = clientY;
+
+        // Aktueller Basis-Offset: offen = 0, geschlossen = collapsedOffset
+        const baseOffset = startSheetOpen ? 0 : getCollapsedOffset();
+        let newOffset = baseOffset + delta;
+
+        // Clamp: nicht über oben hinaus, nicht vollständig aus Sicht
+        newOffset = Math.max(0, Math.min(sheet.offsetHeight - 40, newOffset));
+
+        sheet.style.transform = `translateY(${newOffset}px)`;
+      }
+
+      function onEnd() {
+        if (!isDragging) return;
+        isDragging = false;
+        sheet.style.transition = ''; // Transition wieder aktivieren
+
+        const delta = currentY - startY;
+        const threshold = 60;
+
+        if (delta < -threshold) {
+          // Swipe NACH OBEN → Sheet öffnen
+          sheetOpen = true;
+          sheet.classList.add('open');
+          sheet.classList.remove('hidden');
+          sheet.style.transform = '';
+          document.getElementById('mSheetToggle').classList.add('active');
+        } else if (delta > threshold) {
+          // Swipe NACH UNTEN → Sheet einklappen (Peek-Zustand)
+          sheetOpen = false;
+          sheet.classList.remove('open');
+          sheet.style.transform = '';
+          document.getElementById('mSheetToggle').classList.remove('active');
+        } else {
+          // Zurückfedern
+          sheet.style.transform = '';
+        }
+      }
+
+      // Touch Events
+      handle.addEventListener('touchstart', e => onStart(e.touches[0].clientY), { passive: true });
+      window.addEventListener('touchmove', e => { if (isDragging) onMove(e.touches[0].clientY); }, { passive: true });
+      window.addEventListener('touchend', () => onEnd());
+
+      // Mouse Events (für Desktop-Testing)
+      handle.addEventListener('mousedown', e => { onStart(e.clientY); e.preventDefault(); });
+      window.addEventListener('mousemove', e => { if (isDragging) onMove(e.clientY); });
+      window.addEventListener('mouseup', () => onEnd());
+    })();
+
+    /* Mobile sync helpers — bridge mobile sliders to desktop hidden inputs */
+    function syncParam(desktopInputId, mobileSlider, value) {
+      const el = document.getElementById(desktopInputId);
+      if (el) { el.value = value; el.dispatchEvent(new Event('input')); }
+    }
+
+    function syncDNA(settingKey, desktopInputId, mobileSlider, value) {
+      const el = document.getElementById(desktopInputId);
+      if (el) { el.value = value; el.dispatchEvent(new Event('input')); }
+    }
+
+    function setMobileMode(mode, btn) {
+      document.querySelectorAll('.m-mode-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.mode-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.mode === mode);
+      });
+      const active = document.querySelector('.mode-btn.active');
+      if (active) active.click();
+    }
+
+    function setMobileStrands(strands, btn) {
+      document.querySelectorAll('[data-mstrands]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const desktop = document.querySelector(`[data-strands="${strands}"]`);
+      if (desktop) desktop.click();
+    }
+
+    function toggleMobileEffect(effect, btn) {
+      btn.classList.toggle('active');
+      const desktop = document.querySelector(`[data-effect="${effect}"]`);
+      if (desktop) desktop.click();
+    }
+
+    function setMobileBG(bg, btn) {
+      document.querySelectorAll('[data-mbg]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const desktop = document.querySelector(`[data-bg="${bg}"]`);
+      if (desktop) desktop.click();
+      document.getElementById('mGradEditor').style.display = bg === 'gradient' ? 'block' : 'none';
+    }
+
+    /* Sync mobile progress slider */
+    document.getElementById('mProgressSlider').addEventListener('input', function() {
+      document.getElementById('progressSlider').value = this.value;
+      document.getElementById('progressSlider').dispatchEvent(new Event('input'));
+      document.getElementById('mSliderVal').textContent = this.value + '%';
+    });
+
+    window.addEventListener('resize', applyLayout);
+    applyLayout();
+  </script>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    let loadCSVData, toggleOverlay, toggleAllOverlays;
+
+    /* FPS */
+    let fps = 0, frameCount = 0, lastTime = performance.now();
+    function updateFPSCounter(currentTime) {
+      frameCount++;
+      const dt = currentTime - lastTime;
+      if (dt >= 500) {
+        fps = Math.round((frameCount * 1000) / dt);
+        const el = document.getElementById('fpsCounter');
+        if (el) {
+          el.textContent = `FPS: ${fps}`;
+          el.className = 'fps-counter ' + (fps < 30 ? 'low' : fps < 50 ? 'medium' : 'high');
+        }
+        frameCount = 0; lastTime = currentTime;
+      }
+    }
+
+    /* Renderer */
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance", alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.body.appendChild(renderer.domElement);
+
+    /* Scene */
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5000);
+    camera.position.set(50, 40, 50);
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.zoomSpeed = 1.5;
+    controls.enableZoom = true;
+    controls.zoomSpeed = 1.2;
+    controls.maxDistance = 5000;
+    controls.minDistance = 5;
+    controls.enableDamping = true;
+
+    /* State */
+    let animationProgress = 0, animationDirection = 1, isAnimating = true, showCompleteSpline = false;
+    const animationSpeed = 0.003;
+    let currentMode = 'tube', dnaStrandMode = 'both';
+    let activeEffects = new Set(['neon']);
+    let ccwSplinePoints = [], cwSplinePoints = [], dnaGroup = null;
+    const geometryCache = new Map();
+
+    const commonCurveSettings = { startDiameter: 20.0, endDiameter: 3.0, radialSegments: 16, colors: { ccw: 0xff2266, cw: 0x22aaff } };
+    const dnaSettings = {
+      helixTurns: 20, waveSpeed: 0.0, waveAmplitude: 0.0,
+      connectionHelixDiameter: 2.5, connectionHelixPitch: 8, connectionSnakeDiameter: 0.3,
+      connectionSphereDiameter: 0.8, connectionSpacing: 15,
+      dnaConnectionDiameter: 0.2, dnaConnectionColor: 0xffffff,
+      spikeLengthFactor: 1.4, spikeThicknessFactor: 0.08,
+      colors: { helix1: 0xff2266, helix2: 0x22aaff, connectionSnake: 0x00ff88, connectionSphere: 0xffff00 }
+    };
+    const gridSettings = { yPosition: -300, size: 500, waveAmplitude: 10, waveSpeed: 2, divisions: 30 };
+    const gradientSettings = { color1: '#000033', color2: '#001144', color3: '#002266', direction: 'vertical' };
+
+    function getCachedGeometry(key, createFn) {
+      if (!geometryCache.has(key)) geometryCache.set(key, createFn());
+      return geometryCache.get(key);
+    }
+
+    /* ══ AUTO CSV LOADING ══ */
+    async function loadDefaultCSVFiles() {
+      let ccwLoaded = false, cwLoaded = false;
+
+      try {
+        const res = await fetch('./ccw.csv');
+        if (res.ok) {
+          const text = await res.text();
+          const points = parseCSV(text);
+          if (points.length > 0) { ccwSplinePoints = points; ccwLoaded = true; console.log(`✅ ccw.csv geladen: ${points.length} Punkte`); }
+        }
+      } catch(e) { console.log('ccw.csv nicht gefunden, verwende Fallback'); }
+
+      try {
+        const res = await fetch('./cw.csv');
+        if (res.ok) {
+          const text = await res.text();
+          const points = parseCSV(text);
+          if (points.length > 0) { cwSplinePoints = points; cwLoaded = true; console.log(`✅ cw.csv geladen: ${points.length} Punkte`); }
+        }
+      } catch(e) { console.log('cw.csv nicht gefunden, verwende Fallback'); }
+
+      if (!ccwLoaded || !cwLoaded) {
+        if (!ccwLoaded && !cwLoaded) {
+          createFallbackSplines();
+          setStatus('Demo-Daten aktiv (ccw.csv & cw.csv nicht gefunden)');
+        } else {
+          if (!ccwLoaded) { createFallbackCCW(); setStatus('ccw.csv fehlt – Demo-Daten für CCW'); }
+          if (!cwLoaded) { createFallbackCW(); setStatus('cw.csv fehlt – Demo-Daten für CW'); }
+        }
+      } else {
+        setStatus('CSV-Daten geladen');
+      }
+
+      updatePointCounters();
+      recreateDNA();
+      autoFitCamera();
+    }
+
+    function setStatus(msg) {
+      const el = document.getElementById('status');
+      const mel = document.getElementById('mStatus');
+      if (el) el.textContent = msg;
+      if (mel) mel.textContent = msg;
+    }
+
+    /* ══ MANUAL CSV LOADING ══ */
+    loadCSVData = function(useCCW = true) {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.csv,.txt';
+      input.onchange = e => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = event => {
+          const points = parseCSV(event.target.result);
+          if (useCCW) ccwSplinePoints = points; else cwSplinePoints = points;
+          updatePointCounters();
+          setStatus(`CSV geladen: ${points.length} Punkte für ${useCCW ? 'CCW' : 'CW'}`);
+          recreateDNA();
+          saveSettings();
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+    };
+
+    function parseCSV(csvText) {
+      const points = [];
+      for (const line of csvText.split('\n')) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        const parts = trimmed.replace(/[^\d\.,\-\s]/g, '').split(/[\s,]+/).filter(p => p !== '').map(Number);
+        if (parts.length >= 3) {
+          points.push(new THREE.Vector3(parts[0], parts[2] || 0, -parts[1]));
+        }
+      }
+      return points;
+    }
+
+    /* ══ OVERLAY FUNCTIONS ══ */
+    toggleOverlay = function(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('minimized');
+    };
+    toggleAllOverlays = function() { toggleOverlay('controls-left'); toggleOverlay('controls-right'); };
+
+    /* ══ SETTINGS PERSISTENCE ══ */
+    function loadSettings() {
+      try {
+        if (!localStorage) { updateUIFromSettings(); return; }
+        const saved = localStorage.getItem('dnaVisualizerSettings');
+        if (saved) {
+          const s = JSON.parse(saved);
+          if (s.commonCurve) Object.assign(commonCurveSettings, s.commonCurve);
+          if (s.dna) Object.assign(dnaSettings, s.dna);
+          if (s.currentMode) currentMode = s.currentMode;
+          if (s.dnaStrandMode) dnaStrandMode = s.dnaStrandMode;
+          if (s.activeEffects) activeEffects = new Set(s.activeEffects);
+        }
+      } catch(e) {}
+      updateUIFromSettings();
+    }
+
+    function saveSettings() {
+      try {
+        if (!localStorage) return;
+        localStorage.setItem('dnaVisualizerSettings', JSON.stringify({
+          commonCurve: commonCurveSettings, dna: dnaSettings, grid: gridSettings,
+          gradient: gradientSettings, currentMode, dnaStrandMode, activeEffects: Array.from(activeEffects)
+        }));
+      } catch(e) {}
+    }
+
+    function updateUIFromSettings() {
+      try {
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === currentMode));
+        document.querySelectorAll('.strand-btn').forEach(b => b.classList.toggle('active', b.dataset.strands === dnaStrandMode));
+        document.querySelectorAll('.effect-btn').forEach(b => b.classList.toggle('active', activeEffects.has(b.dataset.effect)));
+        document.getElementById('tubeControls').style.display = 'block';
+        document.getElementById('dnaControls').style.display = currentMode === 'dna' ? 'block' : 'none';
+        document.getElementById('dnaControlsRight').style.display = currentMode === 'dna' ? 'block' : 'none';
+        syncMobileUIFromSettings();
+      } catch(e) {}
+    }
+
+    function syncMobileUIFromSettings() {
+      try {
+        document.querySelectorAll('.m-mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === currentMode));
+        document.querySelectorAll('[data-mstrands]').forEach(b => b.classList.toggle('active', b.dataset.mstrands === dnaStrandMode));
+        document.querySelectorAll('[data-meffect]').forEach(b => b.classList.toggle('active', activeEffects.has(b.dataset.meffect)));
+        /* Sync slider values */
+        setSliderVal('mStartDiam', 'mStartDiamVal', commonCurveSettings.startDiameter, v => parseFloat(v).toFixed(1));
+        setSliderVal('mEndDiam', 'mEndDiamVal', commonCurveSettings.endDiameter, v => parseFloat(v).toFixed(1));
+        setSliderVal('mRadialSeg', 'mRadialSegVal', commonCurveSettings.radialSegments, v => Math.round(v));
+        setSliderVal('mHelixTurns', 'mHelixTurnsVal', dnaSettings.helixTurns, v => Math.round(v));
+        setSliderVal('mWaveSpeed', 'mWaveSpeedVal', dnaSettings.waveSpeed, v => parseFloat(v).toFixed(1));
+        setSliderVal('mWaveAmp', 'mWaveAmpVal', dnaSettings.waveAmplitude, v => parseFloat(v).toFixed(1));
+        setSliderVal('mConnHelixDiam', 'mConnHelixDiamVal', dnaSettings.connectionHelixDiameter, v => parseFloat(v).toFixed(1));
+        setSliderVal('mConnHelixPitch', 'mConnHelixPitchVal', dnaSettings.connectionHelixPitch, v => Math.round(v));
+        setSliderVal('mSnakeDiam', 'mSnakeDiamVal', dnaSettings.connectionSnakeDiameter, v => parseFloat(v).toFixed(1));
+        setSliderVal('mSphereDiam', 'mSphereDiamVal', dnaSettings.connectionSphereDiameter, v => parseFloat(v).toFixed(1));
+        setSliderVal('mConnSpacing', 'mConnSpacingVal', dnaSettings.connectionSpacing, v => Math.round(v));
+        setSliderVal('mConnDiam', 'mConnDiamVal', dnaSettings.dnaConnectionDiameter, v => parseFloat(v).toFixed(1));
+      } catch(e) {}
+    }
+
+    function setSliderVal(sliderId, valId, value, fmt) {
+      const s = document.getElementById(sliderId); if (s) s.value = value;
+      const v = document.getElementById(valId); if (v) v.textContent = fmt(value);
+    }
+
+    /* ══ MATERIAL FUNCTIONS ══ */
+    function getVariableRadius(t) {
+      return commonCurveSettings.startDiameter/2 + (commonCurveSettings.endDiameter/2 - commonCurveSettings.startDiameter/2) * t;
+    }
+
+    function createMaterial(baseColor, time = 0, isTubeMode = false) {
+      if (activeEffects.has('wireframe')) return new THREE.MeshBasicMaterial({ color: baseColor, wireframe: true, transparent: true, opacity: 0.7 });
+      if (activeEffects.has('gradient')) {
+        const cvs = document.createElement('canvas'); cvs.width = 256; cvs.height = 256;
+        const ctx = cvs.getContext('2d');
+        const g = ctx.createLinearGradient(0, 0, 256, 256);
+        g.addColorStop(0, `#${baseColor.toString(16).padStart(6,'0')}`);
+        g.addColorStop(1, '#ffffff');
+        ctx.fillStyle = g; ctx.fillRect(0, 0, 256, 256);
+        return new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cvs), side: THREE.DoubleSide });
+      }
+      if (activeEffects.has('neon')) return new THREE.MeshPhongMaterial({ color: baseColor, emissive: baseColor, emissiveIntensity: 0.3, shininess: 100, transparent: true, opacity: 0.9 });
+      if (activeEffects.has('pulse')) {
+        const pulse = (Math.sin(time * 2) + 1) * 0.5;
+        return new THREE.MeshPhongMaterial({ color: baseColor, emissive: baseColor, emissiveIntensity: 0.1 + pulse * 0.2, shininess: 120, transparent: true, opacity: 0.8 + pulse * 0.2 });
+      }
+      return new THREE.MeshPhongMaterial({ color: baseColor, shininess: isTubeMode ? 150 : 100, specular: 0x222222, transparent: true, opacity: 0.9 });
+    }
+
+    /* ══ GRADIENT UTILS ══ */
+    function createGradientCanvas(colors, direction) {
+      const cvs = document.createElement('canvas'); cvs.width = 512; cvs.height = 512;
+      const ctx = cvs.getContext('2d');
+      const g = direction === 'horizontal' ? ctx.createLinearGradient(0, 0, 512, 0) : ctx.createLinearGradient(0, 0, 0, 512);
+      g.addColorStop(0, colors[0]); g.addColorStop(0.5, colors[1]); g.addColorStop(1, colors[2]);
+      ctx.fillStyle = g; ctx.fillRect(0, 0, 512, 512);
+      return cvs;
+    }
+
+    function updateGradientPreview() {
+      const p = document.getElementById('gradientPreview');
+      if (!p) return;
+      const cvs = createGradientCanvas([gradientSettings.color1, gradientSettings.color2, gradientSettings.color3], gradientSettings.direction);
+      p.style.backgroundImage = `url(${cvs.toDataURL()})`;
+    }
+
+    function applyCustomGradient() {
+      const cvs = createGradientCanvas([gradientSettings.color1, gradientSettings.color2, gradientSettings.color3], gradientSettings.direction);
+      scene.background = new THREE.CanvasTexture(cvs);
+    }
+
+    /* ══ BACKGROUND SYSTEMS ══ */
+    const backgroundSystems = {
+      currentSystem: null,
+      deepspace: {
+        init() {
+          this.clearBackground();
+          scene.background = new THREE.Color(0x000011);
+          const geo = new THREE.BufferGeometry();
+          const pos = new Float32Array(2000 * 3);
+          for (let i = 0; i < 2000; i++) {
+            const r = 100 + Math.random() * 900, th = Math.random() * Math.PI * 2, ph = Math.acos(2 * Math.random() - 1);
+            pos[i*3] = r*Math.sin(ph)*Math.cos(th); pos[i*3+1] = r*Math.sin(ph)*Math.sin(th); pos[i*3+2] = r*Math.cos(ph);
+          }
+          geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+          this.stars = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.2, sizeAttenuation: true }));
+          scene.add(this.stars);
+        },
+        update(t) { if (this.stars) this.stars.rotation.y = t * 0.01; },
+        clearBackground() { if (this.stars) { scene.remove(this.stars); this.stars = null; } }
+      },
+      grid: {
+        init() { this.clearBackground(); scene.background = new THREE.Color(0x111122); this.lastT = 0; this.createGrid(); },
+        createGrid() {
+          if (this.grid) scene.remove(this.grid);
+          const geo = this.buildGeo(this.lastT);
+          this.grid = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: 0x4444ff, transparent: true, opacity: 0.3 }));
+          this.grid.position.y = gridSettings.yPosition;
+          scene.add(this.grid);
+        },
+        buildGeo(t) {
+          const { size, divisions, waveAmplitude, waveSpeed } = gridSettings;
+          const half = size / 2, step = size / divisions;
+          const verts = [], idx = [];
+          for (let i = 0; i <= divisions; i++) for (let j = 0; j <= divisions; j++) {
+            const x = -half + i * step, z = -half + j * step;
+            verts.push(x, Math.sin(x*0.02 + t*waveSpeed) * Math.cos(z*0.02 + t*waveSpeed) * waveAmplitude, z);
+          }
+          for (let i = 0; i <= divisions; i++) for (let j = 0; j <= divisions; j++) {
+            if (j < divisions) idx.push(i*(divisions+1)+j, i*(divisions+1)+j+1);
+            if (i < divisions) idx.push(i*(divisions+1)+j, (i+1)*(divisions+1)+j);
+          }
+          const g = new THREE.BufferGeometry();
+          g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+          g.setIndex(idx);
+          return g;
+        },
+        update(t) {
+          this.lastT = t;
+          if (this.grid) { this.grid.geometry.dispose(); this.grid.geometry = this.buildGeo(t); this.grid.position.y = gridSettings.yPosition; this.grid.material.opacity = 0.2 + Math.sin(t*2)*0.1; }
+        },
+        clearBackground() { if (this.grid) { scene.remove(this.grid); this.grid.geometry.dispose(); this.grid = null; } }
+      },
+      gradient: {
+        init() { this.clearBackground(); applyCustomGradient(); },
+        update() {}, clearBackground() {}
+      },
+      black: {
+        init() { this.clearBackground(); scene.background = new THREE.Color(0x000000); },
+        update() {}, clearBackground() {}
+      }
+    };
+
+    function switchBackground(type) {
+      if (backgroundSystems.currentSystem) backgroundSystems.currentSystem.clearBackground();
+      if (backgroundSystems[type]) { backgroundSystems.currentSystem = backgroundSystems[type]; backgroundSystems[type].init(); }
+    }
+
+    /* ══ SPLINE GEOMETRY ══ */
+    function createVariableTubeGeometry(curve, segments, startRadius, endRadius, radialSegments, closed) {
+      const frames = curve.computeFrenetFrames(segments, closed);
+      const positions = [], normalsArr = [], uvs = [], indices = [];
+      for (let i = 0; i <= segments; i++) {
+        const progress = i / segments;
+        const r = startRadius + (endRadius - startRadius) * progress;
+        const pt = curve.getPointAt(progress);
+        const n = frames.normals[i], b = frames.binormals[i];
+        for (let j = 0; j <= radialSegments; j++) {
+          const a = j / radialSegments * Math.PI * 2, c = Math.cos(a), s = Math.sin(a);
+          const nx = c*n.x + s*b.x, ny = c*n.y + s*b.y, nz = c*n.z + s*b.z;
+          positions.push(pt.x + nx*r, pt.y + ny*r, pt.z + nz*r);
+          normalsArr.push(nx, ny, nz); uvs.push(i/segments, j/radialSegments);
+        }
+      }
+      for (let i = 0; i < segments; i++) for (let j = 0; j < radialSegments; j++) {
+        const a = i*(radialSegments+1)+j, b = a+1, c = a+(radialSegments+1), d = c+1;
+        indices.push(a, b, d); indices.push(a, d, c);
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setIndex(indices);
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geo.setAttribute('normal', new THREE.Float32BufferAttribute(normalsArr, 3));
+      geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+      return geo;
+    }
+
+    /* ══ TUBE MODE ══ */
+    function createSplineCurve(points) {
+      if (points.length === 0) return null;
+      return new THREE.CatmullRomCurve3(points, false, 'centripetal');
+    }
+
+    function createSplineTube(spline, progress, color) {
+      if (!spline) return null;
+      const total = spline.points.length - 1;
+      const visible = showCompleteSpline ? total : Math.floor(progress * total);
+      if (visible < 1) return null;
+      const pts = [];
+      const steps = showCompleteSpline ? spline.points.length : visible + 1;
+      for (let i = 0; i < steps; i++) pts.push(spline.getPoint(i / total));
+      const sub = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
+      const geo = createVariableTubeGeometry(sub, visible, commonCurveSettings.startDiameter/2, commonCurveSettings.endDiameter/2, commonCurveSettings.radialSegments, false);
+      return new THREE.Mesh(geo, createMaterial(color, performance.now()*0.001, true));
+    }
+
+    function createCompleteDNA(progress) {
+      const group = new THREE.Group();
+      if (ccwSplinePoints.length > 1) { const s = createSplineCurve(ccwSplinePoints); const t = createSplineTube(s, progress, commonCurveSettings.colors.ccw); if (t) group.add(t); }
+      if (cwSplinePoints.length > 1) { const s = createSplineCurve(cwSplinePoints); const t = createSplineTube(s, progress, commonCurveSettings.colors.cw); if (t) group.add(t); }
+      return group;
+    }
+
+    /* ══ DNA MODE ══ */
+    function createAnimatedSpline(time, useCCW) {
+      const src = useCCW ? ccwSplinePoints : cwSplinePoints;
+      if (src.length === 0) return null;
+      return new THREE.CatmullRomCurve3(src.map((p, i) => {
+        const pt = p.clone(), t = i / (src.length - 1);
+        if (dnaSettings.waveAmplitude > 0) {
+          pt.x += Math.sin(t*18 + time*dnaSettings.waveSpeed) * dnaSettings.waveAmplitude;
+          pt.z += Math.sin(t*10 + time*(dnaSettings.waveSpeed*0.7)) * (dnaSettings.waveAmplitude*0.7);
+          pt.y += Math.cos(t*30 + time*(dnaSettings.waveSpeed*1.3)) * (dnaSettings.waveAmplitude*0.5);
+        }
+        return pt;
+      }), false, 'centripetal');
+    }
+
+    function createDNAHelix(spline, time, progress, color, second) {
+      if (!spline) return null;
+      const total = spline.points.length - 1;
+      const visible = showCompleteSpline ? total : Math.floor(progress * total);
+      const pts = [];
+      for (let i = 0; i <= visible; i++) {
+        const t = i / total, mp = spline.getPointAt(t), tang = spline.getTangentAt(t).normalize();
+        const up = new THREE.Vector3(0,1,0);
+        let n = new THREE.Vector3().crossVectors(up, tang).normalize();
+        if (n.length() < 0.001) n = new THREE.Vector3(1,0,0);
+        const bi = new THREE.Vector3().crossVectors(tang, n).normalize();
+        const angle = t*dnaSettings.helixTurns*Math.PI*2 + (dnaSettings.waveAmplitude>0 ? Math.sin(t*15+time*4)*0.8 : 0) + (second ? Math.PI : 0);
+        const r = getVariableRadius(t);
+        const pulse = dnaSettings.waveAmplitude > 0 ? (0.8 + Math.sin(t*10+time*3)*0.3) : 1.0;
+        pts.push(mp.clone().add(n.clone().multiplyScalar(Math.cos(angle)*r*pulse).add(bi.clone().multiplyScalar(Math.sin(angle)*r*pulse))));
+      }
+      if (pts.length < 2) return null;
+      const curve = new THREE.CatmullRomCurve3(pts);
+      const geo = createVariableTubeGeometry(curve, Math.max(10, visible), commonCurveSettings.startDiameter/2, commonCurveSettings.endDiameter/2, commonCurveSettings.radialSegments, false);
+      return new THREE.Mesh(geo, createMaterial(color, time, false));
+    }
+
+    function createConnectionHelix(spline, time, progress, color, second) {
+      if (!spline) return new THREE.Group();
+      const group = new THREE.Group();
+      const total = spline.points.length - 1;
+      const visible = showCompleteSpline ? total : Math.floor(progress * total);
+      const snakeR = dnaSettings.connectionSnakeDiameter / 2;
+      const baseOff = dnaSettings.connectionHelixDiameter / 2;
+      const connPts = [];
+
+      for (let i = 0; i <= visible; i++) {
+        const t = i / total, mp = spline.getPointAt(t), tang = spline.getTangentAt(t).normalize();
+        const up = new THREE.Vector3(0,1,0);
+        let n = new THREE.Vector3().crossVectors(up, tang).normalize();
+        if (n.length() < 0.001) n = new THREE.Vector3(1,0,0);
+        const bi = new THREE.Vector3().crossVectors(tang, n).normalize();
+        const baseAngle = t*dnaSettings.helixTurns*Math.PI*2;
+        const rw = dnaSettings.waveAmplitude>0 ? Math.sin(t*15+time*4)*0.8 : 0;
+        const stAngle = baseAngle + rw + (second ? Math.PI : 0);
+        const r = getVariableRadius(t), pulse = dnaSettings.waveAmplitude>0?(0.8+Math.sin(t*10+time*3)*0.3):1.0;
+        const stPos = mp.clone().add(n.clone().multiplyScalar(Math.cos(stAngle)*r*pulse).add(bi.clone().multiplyScalar(Math.sin(stAngle)*r*pulse)));
+        const cAngle = t * dnaSettings.connectionHelixPitch * Math.PI * 2;
+        const scaleFac = r / (commonCurveSettings.startDiameter/2);
+        const helixR = r + baseOff*scaleFac + snakeR;
+        connPts.push(stPos.clone().add(n.clone().multiplyScalar(Math.cos(cAngle)*helixR).add(bi.clone().multiplyScalar(Math.sin(cAngle)*helixR))));
+      }
+
+      if (connPts.length > 1) {
+        const snakeCurve = new THREE.CatmullRomCurve3(connPts);
+        group.add(new THREE.Mesh(new THREE.TubeGeometry(snakeCurve, Math.max(10, visible), snakeR, 8, false), createMaterial(dnaSettings.colors.connectionSnake, time)));
+      }
+
+      const numConn = Math.floor(visible / dnaSettings.connectionSpacing);
+      if (numConn > 0) {
+        const sGeo = new THREE.SphereGeometry(dnaSettings.connectionSphereDiameter/2, 12, 8);
+        const sMat = createMaterial(dnaSettings.colors.connectionSphere, time);
+        const instSpheres = new THREE.InstancedMesh(sGeo, sMat, numConn);
+        const mat4 = new THREE.Matrix4();
+        let count = 0;
+
+        for (let i = 0; i < numConn; i++) {
+          const ci = i * dnaSettings.connectionSpacing;
+          if (ci > visible) continue;
+          const t = ci / total, mp = spline.getPointAt(t), tang = spline.getTangentAt(t).normalize();
+          const up = new THREE.Vector3(0,1,0);
+          let n = new THREE.Vector3().crossVectors(up, tang).normalize();
+          if (n.length() < 0.001) n = new THREE.Vector3(1,0,0);
+          const bi = new THREE.Vector3().crossVectors(tang, n).normalize();
+          const ba = t*dnaSettings.helixTurns*Math.PI*2, rw = dnaSettings.waveAmplitude>0?Math.sin(t*15+time*4)*0.8:0;
+          const stA = ba + rw + (second ? Math.PI : 0);
+          const r = getVariableRadius(t), pulse = dnaSettings.waveAmplitude>0?(0.8+Math.sin(t*10+time*3)*0.3):1.0;
+          const stPos = mp.clone().add(n.clone().multiplyScalar(Math.cos(stA)*r*pulse).add(bi.clone().multiplyScalar(Math.sin(stA)*r*pulse)));
+          const cA = t*dnaSettings.connectionHelixPitch*Math.PI*2;
+          const sf = r/(commonCurveSettings.startDiameter/2);
+          const helixR = r + (dnaSettings.connectionHelixDiameter/2)*sf + snakeR;
+          const sphPos = stPos.clone().add(n.clone().multiplyScalar(Math.cos(cA)*helixR).add(bi.clone().multiplyScalar(Math.sin(cA)*helixR)));
+          mat4.setPosition(sphPos); instSpheres.setMatrixAt(count++, mat4);
+
+          /* DNA connection rod */
+          const dist = sphPos.distanceTo(stPos);
+          const cGeo = new THREE.CylinderGeometry(dnaSettings.dnaConnectionDiameter/2, dnaSettings.dnaConnectionDiameter/2, dist, 4);
+          const conn = new THREE.Mesh(cGeo, createMaterial(dnaSettings.dnaConnectionColor, time));
+          conn.position.copy(sphPos.clone().add(stPos).multiplyScalar(0.5));
+          conn.lookAt(stPos); conn.rotateX(Math.PI/2);
+          group.add(conn);
+        }
+
+        instSpheres.count = count;
+        instSpheres.instanceMatrix.needsUpdate = true;
+        group.add(instSpheres);
+      }
+
+      return group;
+    }
+
+    function createAnimatedDNA(time, progress) {
+      const group = new THREE.Group();
+      if (dnaStrandMode === 'both' || dnaStrandMode === 'ccw') {
+        const s = createAnimatedSpline(time, true);
+        if (s) { const h = createDNAHelix(s, time, progress, dnaSettings.colors.helix1, false); if (h) group.add(h); group.add(createConnectionHelix(s, time, progress, dnaSettings.colors.helix1, false)); }
+      }
+      if (dnaStrandMode === 'both' || dnaStrandMode === 'cw') {
+        const s = createAnimatedSpline(time, false);
+        if (s) { const h = createDNAHelix(s, time, progress, dnaSettings.colors.helix2, true); if (h) group.add(h); group.add(createConnectionHelix(s, time, progress, dnaSettings.colors.helix2, true)); }
+      }
+      return { group };
+    }
+
+    /* ══ FALLBACK SPLINES ══ */
+    function createFallbackSplines() { createFallbackCCW(); createFallbackCW(); }
+
+    function createFallbackCCW() {
+      ccwSplinePoints = [];
+      for (let i = 0; i < 1200; i++) {
+        const t = i / 1199, a = t * 4 * Math.PI * 2;
+        ccwSplinePoints.push(new THREE.Vector3(Math.cos(a)*12, (t-0.5)*50, Math.sin(a)*12));
+      }
+    }
+
+    function createFallbackCW() {
+      cwSplinePoints = [];
+      for (let i = 0; i < 1200; i++) {
+        const t = i / 1199, a = t * 4 * Math.PI * 2;
+        cwSplinePoints.push(new THREE.Vector3(Math.cos(a+Math.PI)*12, (t-0.5)*50, Math.sin(a+Math.PI)*12));
+      }
+    }
+
+    function updatePointCounters() {
+      ['pointsCCW','mPointsCCW'].forEach(id => { const el = document.getElementById(id); if(el) el.textContent = ccwSplinePoints.length; });
+      ['pointsCW','mPointsCW'].forEach(id => { const el = document.getElementById(id); if(el) el.textContent = cwSplinePoints.length; });
+    }
+
+    /* ══ ANIMATION ══ */
+    function updateAnimation() {
+      if (showCompleteSpline) {
+        setProgressUI(100); setAnimInfo('Kompletter Spline'); return;
+      }
+      if (isAnimating) {
+        animationProgress += animationSpeed * animationDirection;
+        if (animationProgress >= 1) { animationProgress = 1; animationDirection = -1; }
+        else if (animationProgress <= 0) { animationProgress = 0; animationDirection = 1; }
+      }
+      const pct = Math.round(animationProgress * 100);
+      setProgressUI(pct);
+      setAnimInfo(animationDirection === 1 ? `Aufbau: ${pct}%` : `Abbau: ${pct}%`);
+    }
+
+    function setProgressUI(pct) {
+      ['progressFill','mProgressFill'].forEach(id => { const el = document.getElementById(id); if(el) el.style.width = pct + '%'; });
+      ['progressSlider','mProgressSlider'].forEach(id => { const el = document.getElementById(id); if(el) el.value = pct; });
+      ['sliderValue','mSliderVal'].forEach(id => { const el = document.getElementById(id); if(el) el.textContent = pct + '%'; });
+    }
+
+    function setAnimInfo(msg) {
+      ['animationInfo','mAnimInfo'].forEach(id => { const el = document.getElementById(id); if(el) el.textContent = msg; });
+    }
+
+    function recreateDNA() {
+      if (dnaGroup) {
+        scene.remove(dnaGroup);
+        dnaGroup.traverse(c => { if (c.geometry) c.geometry.dispose(); });
+        dnaGroup = null;
+      }
+    }
+
+    /* ══ CONTROL FUNCTIONS ══ */
+    function toggleAnimation() {
+      isAnimating = !isAnimating;
+      const btn = document.getElementById('mPlayPauseBtn');
+      if (btn) btn.textContent = isAnimating ? '⏸ Pause' : '▶ Play';
+      setAnimInfo(isAnimating ? (animationDirection===1?'Aufbau':'Abbau') : 'Pausiert');
+    }
+
+    function resetAnimation() { animationProgress = 0; animationDirection = 1; showCompleteSpline = false; isAnimating = true; const btn = document.getElementById('mPlayPauseBtn'); if(btn) btn.textContent = '⏸ Pause'; }
+
+    function toggleCompleteSpline() {
+      showCompleteSpline = !showCompleteSpline;
+      animationProgress = showCompleteSpline ? 1.0 : 0;
+      const btn = document.getElementById('mCompleteBtn');
+      if (btn) btn.classList.toggle('active', showCompleteSpline);
+    }
+
+    function toggleMode() { document.querySelectorAll('.mode-btn').forEach((b,i,a) => { if(b.classList.contains('active')) a[(i+1)%a.length].click(); }); }
+
+    /* ══ LIGHTING ══ */
+    scene.add(new THREE.AmbientLight(0x404040, 0.6));
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+    dirLight.position.set(50, 50, 50); dirLight.castShadow = true; scene.add(dirLight);
+    const fillLight = new THREE.DirectionalLight(0x2244ff, 0.3);
+    fillLight.position.set(-30, -50, -30);
+    scene.add(fillLight);
+    const pointLight = new THREE.PointLight(0xffffff, 0.5, 100);
+    scene.add(pointLight);
+
+    /* ══ MODE CONTROLS SETUP ══ */
+    function setupModeSwitch() {
+      document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+          this.classList.add('active');
+          currentMode = this.dataset.mode;
+          document.getElementById('dnaControls').style.display = currentMode==='dna'?'block':'none';
+          document.getElementById('dnaControlsRight').style.display = currentMode==='dna'?'block':'none';
+          document.getElementById('strand1Label').textContent = currentMode==='tube'?'CCW Helix':'Helix 1';
+          document.getElementById('strand2Label').textContent = currentMode==='tube'?'CW Helix':'Helix 2';
+          recreateDNA(); saveSettings();
+        });
+      });
+    }
+
+    function setupStrandSelection() {
+      document.querySelectorAll('.strand-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('.strand-btn').forEach(b => b.classList.remove('active'));
+          this.classList.add('active');
+          dnaStrandMode = this.dataset.strands;
+          recreateDNA(); saveSettings();
+        });
+      });
+    }
+
+    function setupEffects() {
+      document.querySelectorAll('.effect-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const effect = this.dataset.effect;
+          if (activeEffects.has(effect)) { activeEffects.delete(effect); this.classList.remove('active'); }
+          else { activeEffects.add(effect); this.classList.add('active'); }
+          recreateDNA(); saveSettings();
+        });
+      });
+    }
+
+    function bindSliders(pairs) {
+      pairs.forEach(([inputId, sliderId, settingObj, settingKey]) => {
+        const inp = document.getElementById(inputId), sl = document.getElementById(sliderId);
+        if (!inp || !sl) return;
+        const update = () => { settingObj[settingKey] = parseFloat(inp.value); recreateDNA(); saveSettings(); };
+        inp.addEventListener('input', () => { sl.value = inp.value; update(); });
+        sl.addEventListener('input', () => { inp.value = sl.value; update(); });
+      });
+    }
+
+    function setupDnaControls() {
+      bindSliders([
+        ['dnaHelixTurns','dnaHelixTurnsSlider',dnaSettings,'helixTurns'],
+        ['dnaWaveSpeed','dnaWaveSpeedSlider',dnaSettings,'waveSpeed'],
+        ['dnaWaveAmplitude','dnaWaveAmplitudeSlider',dnaSettings,'waveAmplitude'],
+        ['connectionHelixDiameter','connectionHelixDiameterSlider',dnaSettings,'connectionHelixDiameter'],
+        ['connectionHelixPitch','connectionHelixPitchSlider',dnaSettings,'connectionHelixPitch'],
+        ['connectionSnakeDiameter','connectionSnakeDiameterSlider',dnaSettings,'connectionSnakeDiameter'],
+        ['connectionSphereDiameter','connectionSphereDiameterSlider',dnaSettings,'connectionSphereDiameter'],
+        ['connectionSpacing','connectionSpacingSlider',dnaSettings,'connectionSpacing'],
+        ['dnaConnectionDiameter','dnaConnectionDiameterSlider',dnaSettings,'dnaConnectionDiameter'],
+      ]);
+      document.getElementById('dnaConnectionColor').addEventListener('input', function(e) {
+        dnaSettings.dnaConnectionColor = parseInt(e.target.value.replace('#',''), 16);
+        recreateDNA(); saveSettings();
+      });
+    }
+
+    function setupCommonCurveControls() {
+      bindSliders([
+        ['startDiameter','startDiameterSlider',commonCurveSettings,'startDiameter'],
+        ['endDiameter','endDiameterSlider',commonCurveSettings,'endDiameter'],
+        ['radialSegments','radialSegmentsSlider',commonCurveSettings,'radialSegments'],
+      ]);
+    }
+
+    function setupProgressSlider() {
+      const sl = document.getElementById('progressSlider');
+      sl.addEventListener('input', function() {
+        if (!isAnimating) { animationProgress = this.value / 100; document.getElementById('sliderValue').textContent = this.value + '%'; recreateDNA(); }
+      });
+    }
+
+    function setupGridControls() {
+      document.getElementById('advancedGrid').addEventListener('change', function() {
+        document.getElementById('gridAdvanced').style.display = this.checked ? 'block' : 'none';
+      });
+      bindSliders([
+        ['gridYPosition','gridYPositionSlider',gridSettings,'yPosition'],
+        ['gridSize','gridSizeSlider',gridSettings,'size'],
+      ]);
+    }
+
+    function autoFitCamera() {
+      // Berechne die Bounding Box aller Punkte
+      let minX = Infinity, minY = Infinity, minZ = Infinity;
+      let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+      
+      const allPoints = [...ccwSplinePoints, ...cwSplinePoints];
+      
+      if (allPoints.length === 0) return;
+      
+      allPoints.forEach(p => {
+        minX = Math.min(minX, p.x);
+        minY = Math.min(minY, p.y);
+        minZ = Math.min(minZ, p.z);
+        maxX = Math.max(maxX, p.x);
+        maxY = Math.max(maxY, p.y);
+        maxZ = Math.max(maxZ, p.z);
+      });
+      
+      const center = new THREE.Vector3(
+        (minX + maxX) / 2,
+        (minY + maxY) / 2,
+        (minZ + maxZ) / 2
+      );
+      
+      const size = Math.max(maxX - minX, maxY - minY, maxZ - minZ);
+      const distance = Math.max(size * 0.8, 20);
+      
+      // Kamera positionieren
+      camera.position.set(center.x + distance * 0.5, center.y + distance * 0.4, center.z + distance);
+      controls.target.copy(center);
+      controls.update();
+    }
+
+
+    function setupBackgroundSelector() {
+      document.querySelectorAll('.bg-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('.bg-btn').forEach(b => b.classList.remove('active'));
+          this.classList.add('active');
+          const bg = this.dataset.bg;
+          document.getElementById('gradientEditor').style.display = bg==='gradient'?'block':'none';
+          document.getElementById('gridControls').style.display = bg==='grid'?'block':'none';
+          switchBackground(bg); saveSettings();
+        });
+      });
+      ['color1','color2','color3'].forEach(id => {
+        document.getElementById(id).addEventListener('input', function(e) {
+          gradientSettings[id] = e.target.value; updateGradientPreview();
+          if (backgroundSystems.currentSystem === backgroundSystems.gradient) applyCustomGradient();
+          saveSettings();
+        });
+      });
+      document.querySelectorAll('.dir-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('.dir-btn').forEach(b => b.classList.remove('active'));
+          this.classList.add('active');
+          gradientSettings.direction = this.dataset.dir;
+          updateGradientPreview();
+          if (backgroundSystems.currentSystem === backgroundSystems.gradient) applyCustomGradient();
+          saveSettings();
+        });
+      });
+      updateGradientPreview();
+    }
+
+    /* ══ EXTERNAL DATA INTERFACE ══ */
+    window.updateSplineData = function(data) {
+      try {
+        ccwSplinePoints = (data.ccw_points||[]).map(p => new THREE.Vector3(...p));
+        cwSplinePoints = (data.cw_points||[]).map(p => new THREE.Vector3(...p));
+        setStatus('Externe Spline-Daten geladen');
+        updatePointCounters();
+      } catch(e) { setStatus('Fehler beim Laden'); }
+    };
+
+    /* ══ MAIN LOOP ══ */
+    function stableAnimate(time) {
+      requestAnimationFrame(stableAnimate);
+      const t = time * 0.001;
+      updateFPSCounter(time);
+      updateAnimation();
+      if (backgroundSystems.currentSystem) backgroundSystems.currentSystem.update(t);
+      pointLight.position.set(Math.sin(t*0.5)*30, Math.cos(t*0.3)*40, Math.sin(t*0.7)*20);
+      recreateDNA();
+      if (currentMode === 'tube') dnaGroup = createCompleteDNA(animationProgress);
+      else { const r = createAnimatedDNA(t, animationProgress); if (r) dnaGroup = r.group; }
+      if (dnaGroup) { scene.add(dnaGroup); dnaGroup.rotation.y = Math.sin(t*0.2)*0.1; }
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    /* ══ INIT ══ */
+    async function init() {
+      console.log('🚀 O.C.E.A.N 3D-Animator initialisiert');
+      try {
+        loadSettings();
+        setupModeSwitch();
+        setupStrandSelection();
+        setupEffects();
+        setupCommonCurveControls();
+        setupDnaControls();
+        setupProgressSlider();
+        setupGridControls();
+        setupBackgroundSelector();
+        switchBackground('deepspace');
+
+        /* Auto-load CSV files first, fallback if missing */
+        await loadDefaultCSVFiles();
+
+        stableAnimate(0);
+        console.log('✅ Initialisierung abgeschlossen');
+      } catch(e) {
+        console.error('❌ Init-Fehler:', e);
+        createFallbackSplines();
+        updatePointCounters();
+        stableAnimate(0);
+      }
+    }
+
+    /* ══ EVENTS ══ */
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    window.addEventListener('keydown', e => {
+      if (e.code==='Space') { e.preventDefault(); toggleAnimation(); }
+      else if (e.code==='KeyR') resetAnimation();
+      else if (e.code==='KeyC') toggleCompleteSpline();
+      else if (e.code==='KeyM') toggleMode();
+      else if (e.code==='KeyH') { if(toggleAllOverlays) toggleAllOverlays(); }
+      else if (e.code==='Digit1' && (e.ctrlKey||e.metaKey)) { e.preventDefault(); if(loadCSVData) loadCSVData(true); }
+      else if (e.code==='Digit2' && (e.ctrlKey||e.metaKey)) { e.preventDefault(); if(loadCSVData) loadCSVData(false); }
+    });
+
+    /* Global exports */
+    window.loadCSVData = loadCSVData;
+    window.toggleOverlay = toggleOverlay;
+    window.toggleAllOverlays = toggleAllOverlays;
+    window.toggleAnimation = toggleAnimation;
+    window.resetAnimation = resetAnimation;
+    window.toggleCompleteSpline = toggleCompleteSpline;
+
+    init();
+  </script>
+</body>
+</html>

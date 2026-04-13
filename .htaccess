@@ -1,0 +1,17 @@
+# SPA Routing
+RewriteEngine On
+RewriteBase /
+RewriteRule ^index\.html$ - [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /index.html [L]
+
+# Kompression
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css text/javascript application/javascript application/json
+</IfModule>
+
+# Cache Header für Assets
+<FilesMatch "\.(jpg|jpeg|png|gif|ico|webm|mp4|css|js)$">
+  Header set Cache-Control "max-age=31536000, public"
+</FilesMatch>
