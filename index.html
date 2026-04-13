@@ -2113,23 +2113,21 @@
       if (localStorage.getItem('forceWeakDevice') === 'true') return false;
       if (localStorage.getItem('forceStrongDevice') === 'true') return true;
       
-      // Performance-Test statt pauschaler Mobile-Blockade
-      let isSlow = false;
-      try {
-        const startTime = performance.now();
-        let iterations = 0;
-        while (performance.now() - startTime < 100) {
-          iterations++;
-          Math.sqrt(iterations);
-        }
-        isSlow = iterations < 25000; // Schwellwert für "langsam"
-      } catch(e) { isSlow = true; }
+      const isMobileUA = /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent);
+      
+      // Mobile generell kein Network
+      if (isMobileUA) return false;
       
       const cores = navigator.hardwareConcurrency || 2;
       const memory = navigator.deviceMemory || 4;
+      let isThrottled = false;
+      try {
+        const startTime = performance.now(); let iterations = 0;
+        while (performance.now() - startTime < 100) { iterations++; Math.sqrt(iterations); }
+        isThrottled = iterations < 30000;
+      } catch(e) {}
       
-      // Nur wirklich langsame Geräte blockieren
-      return !(isSlow && (cores <= 4 || memory <= 2));
+      return !(isThrottled && (cores <= 4 || memory <= 2));
     }
     window.testNetwork = {
       weak:   () => { localStorage.setItem('forceWeakDevice', 'true'); localStorage.removeItem('forceStrongDevice'); location.reload(); },
