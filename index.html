@@ -1762,141 +1762,214 @@
     
   
     class XboxNavigation {
-      constructor() {
-        this.sections = document.querySelectorAll('.scroll-section');
-        this.dots = document.querySelectorAll('.nav-indicators .nav-dot');
-        this.menuItems = document.querySelectorAll('.menu-item');
-        this.currentIndex = 0; this.isAnimating = false;
-        this.video = document.getElementById('scroll-video');
-        this.videoDuration = 20; this.forwardDuration = 10;
-        this.touchStartY = 0; this.touchEndY = 0;
-        this.init();
-      }
-      init() {
-        this.updateMenuPositions();
-        this.sections.forEach((section, index) => {
-          section.classList.remove('active', 'prev', 'next');
-          if (index === this.currentIndex) section.classList.add('active');
-          else if (index < this.currentIndex) section.classList.add('prev');
-          else section.classList.add('next');
-        });
-        window.addEventListener('wheel', (e) => { e.preventDefault(); if (!this.isAnimating) e.deltaY > 0 ? this.next() : this.prev(); }, { passive: false });
-        window.addEventListener('touchstart', (e) => { if (!this.isAnimating) this.touchStartY = e.changedTouches[0].screenY; }, { passive: true });
-        window.addEventListener('touchend', (e) => { if (!this.isAnimating) { this.touchEndY = e.changedTouches[0].screenY; this.handleSwipe(); } }, { passive: true });
-        window.addEventListener('keydown', (e) => { if (!this.isAnimating) { if (e.key === 'ArrowDown') { e.preventDefault(); this.next(); } else if (e.key === 'ArrowUp') { e.preventDefault(); this.prev(); } } });
-        this.dots.forEach((dot, index) => { dot.addEventListener('click', () => { if (!this.isAnimating && index !== this.currentIndex) this.goToSection(index); }); });
-        this.menuItems.forEach((item, index) => { item.onclick = () => { if (!this.isAnimating && index !== this.currentIndex) this.goToSection(index); }; });
-        window.addEventListener('resize', () => this.updateMenuPositions());
-      }
-      handleSwipe() { if (Math.abs(this.touchStartY - this.touchEndY) > 50) this.touchStartY > this.touchEndY ? this.next() : this.prev(); }
-      updateMenuPositions() { updateMenuItemsPositions(); }
-      next() { if (this.currentIndex < Math.min(visibleSections, this.sections.length) - 1) this.goToSection(this.currentIndex + 1); }
-      prev() { if (this.currentIndex > 0) this.goToSection(this.currentIndex - 1); }
-      
-      goToSection(index) {
-        if (index >= Math.min(visibleSections, this.sections.length) || this.isAnimating) {
-          return;
-        }
-        
-        console.log('Going to section:', index);
-        this.isAnimating = true;
-        
-        const prevIndex = this.currentIndex;
-        const sectionsCount = visibleSections - 1;
-        
-        // Verwende die tatsächliche Video-Dauer
-        let videoDuration = this.video ? this.video.duration : 20;
-        if (!videoDuration || videoDuration === Infinity) videoDuration = 20;
-        
-        let startTime, targetTime;
-        
-        if (index > prevIndex) {
-          startTime = (prevIndex / sectionsCount) * videoDuration;
-          targetTime = (index / sectionsCount) * videoDuration;
-        } else {
-          startTime = videoDuration - ((prevIndex / sectionsCount) * videoDuration);
-          targetTime = videoDuration - ((index / sectionsCount) * videoDuration);
-        }
-        
-        // Validiere Zeiten
-        startTime = Math.max(0, Math.min(startTime, videoDuration - 0.1));
-        targetTime = Math.max(0, Math.min(targetTime, videoDuration - 0.1));
-        
-        const timeDiff = Math.abs(targetTime - startTime);
-        const playDuration = Math.abs(index - prevIndex) === 1 ? 1500 : 4000;
-        let playbackRate = timeDiff / (playDuration / 1000);
-        playbackRate = Math.min(Math.max(playbackRate, 0.3), 3);
-        
-        console.log(`⏱️ Seek: ${startTime.toFixed(2)}s → ${targetTime.toFixed(2)}s (${playbackRate.toFixed(2)}x)`);
-        
-        // UI aktualisieren
-        const currentSection = this.sections[prevIndex];
-        const nextSection = this.sections[index];
-        if (currentSection) currentSection.classList.add('fade-out');
-        if (nextSection) nextSection.classList.add('fade-in');
-        this.animateUI(index);
-        
-        // 🔥 CRITICAL: Video Seek mit Fallback
-        if (this.video) {
-          this.video.pause();
-          
-          // Erster Versuch
-          try {
-            this.video.currentTime = startTime;
-            console.log('✅ Time set to:', startTime);
-          } catch(e) {
-            console.warn('⚠️ First seek failed:', e);
-          }
-          
-          // Zweiter Versuch nach kurzer Verzögerung (Cloudflare Workaround)
-          setTimeout(() => {
-            if (this.currentIndex === index) {
-              try {
-                if (Math.abs(this.video.currentTime - startTime) > 0.5) {
-                  this.video.currentTime = startTime;
-                  console.log('✅ Retry set time to:', startTime);
-                }
-              } catch(e) {}
-            }
-          }, 50);
-          
-          // Abspielen
-          setTimeout(() => {
-            if (this.currentIndex === index && this.isAnimating) {
-              this.video.playbackRate = playbackRate;
-              this.video.play().catch(e => console.warn('Play failed:', e));
-            }
-          }, 100);
-        }
-        
-        // Animation beenden
-        setTimeout(() => {
-          if (this.currentIndex === index && this.isAnimating) {
-            if (this.video) {
-              this.video.pause();
-              try {
-                this.video.currentTime = targetTime;
-                console.log('✅ Final time set to:', targetTime);
-              } catch(e) {}
-              this.video.playbackRate = 1;
-            }
-            
-            if (currentSection) currentSection.classList.remove('fade-out');
-            if (nextSection) nextSection.classList.remove('fade-in');
-            
+        constructor() {
+            this.sections = document.querySelectorAll('.scroll-section');
+            this.dots = document.querySelectorAll('.nav-indicators .nav-dot');
+            this.menuItems = document.querySelectorAll('.menu-item');
+            this.currentIndex = 0;
             this.isAnimating = false;
-            console.log('✅ Navigation complete');
-          }
-        }, playDuration + 100);
-      }
+            this.scrollDuration = 2000;
+            this.video = document.getElementById('scroll-video');
+            this.videoDuration = 20;
+            this.forwardDuration = 10;
+           
+            // Touch-Variablen
+            this.touchStartY = 0;
+            this.touchEndY = 0;
+           
+            this.init();
+        }
+        init() {
+            this.updateMenuPositions();
+            this.sections.forEach((section, index) => {
+                section.classList.remove('active', 'prev', 'next');
+                if (index === this.currentIndex) {
+                    section.classList.add('active');
+                } else if (index < this.currentIndex) {
+                    section.classList.add('prev');
+                } else {
+                    section.classList.add('next');
+                }
+            });
+            // Desktop: Wheel-Event
+            window.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                if (this.isAnimating) return;
+               
+                if (e.deltaY > 0) {
+                    this.next();
+                } else {
+                    this.prev();
+                }
+            }, { passive: false });
+            // Mobile: Touch-Events für Swipe
+            window.addEventListener('touchstart', (e) => {
+                if (this.isAnimating) return;
+                this.touchStartY = e.changedTouches[0].screenY;
+            }, { passive: true });
+            window.addEventListener('touchend', (e) => {
+                if (this.isAnimating) return;
+                this.touchEndY = e.changedTouches[0].screenY;
+                this.handleSwipe();
+            }, { passive: true });
+            // Tastatur
+            window.addEventListener('keydown', (e) => {
+                if (this.isAnimating) return;
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    this.next();
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    this.prev();
+                }
+            });
+            // Navigation Dots
+            this.dots.forEach((dot, index) => {
+                dot.addEventListener('click', () => {
+                    if (this.isAnimating || index === this.currentIndex) return;
+                    this.goToSection(index);
+                });
+            });
 
-      animateUI(index) {
-        this.sections.forEach(s => s.classList.remove('active', 'prev', 'next'));
-        this.sections.forEach((s, i) => { if (i === index) s.classList.add('active'); else if (i < index) s.classList.add('prev'); else s.classList.add('next'); });
-        this.dots.forEach(d => d.classList.remove('active')); this.dots[index].classList.add('active');
-        this.menuItems.forEach(m => m.classList.remove('active')); this.menuItems[index].classList.add('active');
-        this.currentIndex = index;
-      }
+            // Menu Items
+            this.menuItems.forEach((item, index) => {
+              // Alte Event-Listener entfernen
+              item.removeEventListener('click', item._clickHandler);
+              
+              // Neuen Event-Listener hinzufügen
+              item._clickHandler = () => {
+                if (this.isAnimating || index === this.currentIndex) return;
+                this.goToSection(index);
+              };
+              
+              item.addEventListener('click', item._clickHandler);
+              item.style.pointerEvents = 'auto';
+              item.style.cursor = 'pointer';
+            });
+
+            window.addEventListener('resize', () => {
+                this.updateMenuPositions();
+            });
+        }
+        // Swipe-Gesten für Mobile
+        handleSwipe() {
+            const swipeThreshold = 50;
+            const swipeLength = this.touchStartY - this.touchEndY;
+            if (Math.abs(swipeLength) < swipeThreshold) return;
+            if (swipeLength > 0) {
+                // Swipe nach oben -> nächste Section
+                this.next();
+            } else {
+                // Swipe nach unten -> vorherige Section
+                this.prev();
+            }
+        }
+        updateMenuPositions() {
+            updateMenuItemsPositions();
+            }
+     
+        next() {
+            if (this.currentIndex < Math.min(visibleSections, this.sections.length) - 1) {
+                this.goToSection(this.currentIndex + 1);
+            }
+        }
+        prev() {
+            if (this.currentIndex > 0) {
+                this.goToSection(this.currentIndex - 1);
+            }
+        }
+        
+
+
+        goToSection(index) {
+            if (index >= Math.min(visibleSections, this.sections.length) || this.isAnimating) return;
+
+            this.isAnimating = true;
+            const prevIndex = this.currentIndex;
+            const direction = index > prevIndex ? 'forward' : 'backward';
+
+            const sectionsCount = visibleSections - 1;
+            let startTime, targetTime;
+
+            if (direction === 'forward') {
+                startTime = (prevIndex / sectionsCount) * this.forwardDuration;
+                targetTime = (index / sectionsCount) * this.forwardDuration;
+            } else {
+                // Rückwärts - deine perfekte Logik beibehalten
+                startTime = this.videoDuration - ((prevIndex / sectionsCount) * this.forwardDuration);
+                targetTime = this.videoDuration - ((index / sectionsCount) * this.forwardDuration);
+            }
+
+            // Zeitdifferenz berechnen - ABER konsistent für beide Richtungen
+            const timeDifference = Math.abs(targetTime - startTime);
+            const isDirectNeighbor = Math.abs(index - prevIndex) === 1;
+            const playDuration = isDirectNeighbor ? 2000 : 5000;
+            const playbackRate = timeDifference / (playDuration / 1000);
+
+            const puffer = /Safari/i.test(navigator.userAgent) && !/Chrome/i.test(navigator.userAgent) ? 50 :
+                          /Firefox/i.test(navigator.userAgent) ? 10 :
+                          /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? 50 : 5; //5 standart desktop
+
+            this.animateUI(index);
+
+            this.video.pause();
+            this.video.currentTime = startTime;
+            this.video.playbackRate = playbackRate;
+
+            console.log(`Jump: ${prevIndex} -> ${index}, Direction: ${direction}, Time: ${startTime.toFixed(2)} -> ${targetTime.toFixed(2)}, Rate: ${playbackRate.toFixed(2)}x`);
+
+            setTimeout(() => {
+                if (this.currentIndex !== index || !this.isAnimating) return;
+                this.video.play().catch(() => {});
+            }, 10);
+
+            setTimeout(() => {
+                if (this.currentIndex !== index || !this.isAnimating) return;
+
+                this.video.pause();
+                this.video.currentTime = targetTime;
+                this.video.playbackRate = 1.0;
+
+                this.video.play().catch(err => {
+                    if (err.name !== 'AbortError') console.error(err);
+                });
+
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        this.video.pause();
+                        this.isAnimating = false;
+                    });
+                });
+
+            }, playDuration + puffer);
+        }
+       
+        animateUI(index) {
+            // Sections animieren
+            this.sections.forEach(section => {
+                section.classList.remove('active', 'prev', 'next');
+            });
+           
+            this.sections.forEach((section, i) => {
+                if (i === index) {
+                    section.classList.add('active');
+                } else if (i < index) {
+                    section.classList.add('prev');
+                } else {
+                    section.classList.add('next');
+                }
+            });
+           
+            // Navigation Dots
+            this.dots.forEach(dot => dot.classList.remove('active'));
+            this.dots[index].classList.add('active');
+           
+            // Menu Items
+            this.menuItems.forEach(item => item.classList.remove('active'));
+            this.menuItems[index].classList.add('active');
+           
+            this.currentIndex = index;
+        }
     }
     
     function initializeSections() {
@@ -2009,59 +2082,22 @@
       const video = document.getElementById('scroll-video');
       const section = document.getElementById('scroll-section');
       if (!video) return;
-      
-      const isDesktop = window.innerWidth > 768;
-      const baseSrc = isDesktop ? '/assets/ocean-Desktop.webm' : '/assets/ocean-Mobile.webm';
-      
-      // 🔥 CRITICAL: Zeitstempel für Cloudflare
-      const timestamp = Date.now();
-      const videoSrc = `${baseSrc}?nocache=${timestamp}`;
-      
-      console.log('Loading video with cache buster:', videoSrc);
-      
-      // Video zurücksetzen und neu laden
-      video.pause();
-      video.src = videoSrc;
-      video.load();
-      
-      video.addEventListener('loadeddata', () => {
-        console.log('✅ Video loaded, duration:', video.duration);
-        if (section) section.classList.add('video-ready');
-        video.style.opacity = '0.8';
-      }, { once: true });
-      
-      video.addEventListener('error', (e) => {
-        console.error('❌ Video error:', e);
-      });
+      const videoSrc = getVideoSource();
+      video.src = videoSrc; video.load();
+      if (window.innerWidth > 768) video.style.backgroundColor = 'transparent';
+      video.addEventListener('loadeddata', () => section.classList.add('video-ready'));
     }
 
-    // Bei Resize auch mit Cache-Buster
     let resizeTimer;
     window.addEventListener('resize', () => {
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(() => {
         const video = document.getElementById('scroll-video');
-        if (!video) return;
-        
-        const wasPlaying = !video.paused;
-        const currentTime = video.currentTime;
-        const isDesktop = window.innerWidth > 768;
-        const baseSrc = isDesktop ? '/assets/ocean-Desktop.webm' : '/assets/ocean-Mobile.webm';
-        
-        // Auch hier Cache-Buster
-        const newSrc = `${baseSrc}?nocache=${Date.now()}`;
-        const currentBaseSrc = video.src.split('?')[0];
-        
-        if (currentBaseSrc !== baseSrc) {
-          console.log('Switching video source on resize');
-          video.pause();
-          video.src = newSrc;
-          video.load();
-          
-          video.addEventListener('loadeddata', () => {
-            video.currentTime = currentTime;
-            if (wasPlaying) video.play().catch(e => console.warn(e));
-          }, { once: true });
+        const currentSrc = video.src; const newSrc = getVideoSource();
+        if (!currentSrc.includes(newSrc.split('/').pop())) {
+          const wasPlaying = !video.paused; const currentTime = video.currentTime;
+          video.src = newSrc; video.load();
+          video.addEventListener('loadeddata', () => { video.currentTime = currentTime; if (wasPlaying) video.play(); }, { once: true });
         }
       }, 250);
     });
@@ -2316,30 +2352,7 @@
       newsSidebar.addEventListener('touchstart', (e) => { sidebarTouchStartX = e.changedTouches[0].screenX; sidebarTouchStartY = e.changedTouches[0].screenY; }, { passive: true });
       newsSidebar.addEventListener('touchend', (e) => { const dx = e.changedTouches[0].screenX - sidebarTouchStartX; const dy = Math.abs(e.changedTouches[0].screenY - sidebarTouchStartY); if (dx > 60 && dy < 80) closeNewsSidebar(); }, { passive: true });
     }
-
-    
-    // Debug: Video-Status ausgeben
-    setTimeout(() => {
-      const video = document.getElementById('scroll-video');
-      if (video) {
-        console.log('Video element found:', video);
-        console.log('Video src:', video.src);
-        console.log('Video readyState:', video.readyState);
-        console.log('Video error:', video.error);
-        
-        // Manuell versuchen zu spielen
-        video.play().then(() => {
-          console.log('Video playing!');
-        }).catch(e => {
-          console.error('Video play failed:', e);
-        });
-      } else {
-        console.error('Video element NOT found!');
-      }
-    }, 2000);
-
-
-
+  
   </script>
 </body>
 </html>
