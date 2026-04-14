@@ -2208,6 +2208,29 @@
       newsSidebar.addEventListener('touchend', (e) => { const dx = e.changedTouches[0].screenX - sidebarTouchStartX; const dy = Math.abs(e.changedTouches[0].screenY - sidebarTouchStartY); if (dx > 60 && dy < 80) closeNewsSidebar(); }, { passive: true });
     }
 
+    
+    // Debug: Video-Status ausgeben
+    setTimeout(() => {
+      const video = document.getElementById('scroll-video');
+      if (video) {
+        console.log('Video element found:', video);
+        console.log('Video src:', video.src);
+        console.log('Video readyState:', video.readyState);
+        console.log('Video error:', video.error);
+        
+        // Manuell versuchen zu spielen
+        video.play().then(() => {
+          console.log('Video playing!');
+        }).catch(e => {
+          console.error('Video play failed:', e);
+        });
+      } else {
+        console.error('Video element NOT found!');
+      }
+    }, 2000);
+
+
+
   </script>
 </body>
 </html>
