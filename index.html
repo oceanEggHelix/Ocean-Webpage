@@ -1792,32 +1792,104 @@
       updateMenuPositions() { updateMenuItemsPositions(); }
       next() { if (this.currentIndex < Math.min(visibleSections, this.sections.length) - 1) this.goToSection(this.currentIndex + 1); }
       prev() { if (this.currentIndex > 0) this.goToSection(this.currentIndex - 1); }
+      
       goToSection(index) {
-        if (index >= Math.min(visibleSections, this.sections.length) || this.isAnimating) return;
+        if (index >= Math.min(visibleSections, this.sections.length) || this.isAnimating) {
+          return;
+        }
+        
+        console.log('Going to section:', index);
         this.isAnimating = true;
+        
         const prevIndex = this.currentIndex;
         const sectionsCount = visibleSections - 1;
+        
+        // Verwende die tatsächliche Video-Dauer
+        let videoDuration = this.video ? this.video.duration : 20;
+        if (!videoDuration || videoDuration === Infinity) videoDuration = 20;
+        
         let startTime, targetTime;
-        if (index > prevIndex) { startTime = (prevIndex / sectionsCount) * this.forwardDuration; targetTime = (index / sectionsCount) * this.forwardDuration; }
-        else { startTime = this.videoDuration - ((prevIndex / sectionsCount) * this.forwardDuration); targetTime = this.videoDuration - ((index / sectionsCount) * this.forwardDuration); }
+        
+        if (index > prevIndex) {
+          startTime = (prevIndex / sectionsCount) * videoDuration;
+          targetTime = (index / sectionsCount) * videoDuration;
+        } else {
+          startTime = videoDuration - ((prevIndex / sectionsCount) * videoDuration);
+          targetTime = videoDuration - ((index / sectionsCount) * videoDuration);
+        }
+        
+        // Validiere Zeiten
+        startTime = Math.max(0, Math.min(startTime, videoDuration - 0.1));
+        targetTime = Math.max(0, Math.min(targetTime, videoDuration - 0.1));
+        
         const timeDiff = Math.abs(targetTime - startTime);
-        const playDuration = Math.abs(index - prevIndex) === 1 ? 2000 : 5000;
-        const playbackRate = timeDiff / (playDuration / 1000);
-        const puffer = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? 50 : 5;
-        const currentSection = this.sections[this.currentIndex];
+        const playDuration = Math.abs(index - prevIndex) === 1 ? 1500 : 4000;
+        let playbackRate = timeDiff / (playDuration / 1000);
+        playbackRate = Math.min(Math.max(playbackRate, 0.3), 3);
+        
+        console.log(`⏱️ Seek: ${startTime.toFixed(2)}s → ${targetTime.toFixed(2)}s (${playbackRate.toFixed(2)}x)`);
+        
+        // UI aktualisieren
+        const currentSection = this.sections[prevIndex];
         const nextSection = this.sections[index];
-        currentSection.classList.add('fade-out'); nextSection.classList.add('fade-in');
+        if (currentSection) currentSection.classList.add('fade-out');
+        if (nextSection) nextSection.classList.add('fade-in');
         this.animateUI(index);
-        this.video.pause(); this.video.currentTime = startTime; this.video.playbackRate = playbackRate;
-        setTimeout(() => { if (this.currentIndex === index && this.isAnimating) this.video.play().catch(() => {}); }, 10);
+        
+        // 🔥 CRITICAL: Video Seek mit Fallback
+        if (this.video) {
+          this.video.pause();
+          
+          // Erster Versuch
+          try {
+            this.video.currentTime = startTime;
+            console.log('✅ Time set to:', startTime);
+          } catch(e) {
+            console.warn('⚠️ First seek failed:', e);
+          }
+          
+          // Zweiter Versuch nach kurzer Verzögerung (Cloudflare Workaround)
+          setTimeout(() => {
+            if (this.currentIndex === index) {
+              try {
+                if (Math.abs(this.video.currentTime - startTime) > 0.5) {
+                  this.video.currentTime = startTime;
+                  console.log('✅ Retry set time to:', startTime);
+                }
+              } catch(e) {}
+            }
+          }, 50);
+          
+          // Abspielen
+          setTimeout(() => {
+            if (this.currentIndex === index && this.isAnimating) {
+              this.video.playbackRate = playbackRate;
+              this.video.play().catch(e => console.warn('Play failed:', e));
+            }
+          }, 100);
+        }
+        
+        // Animation beenden
         setTimeout(() => {
           if (this.currentIndex === index && this.isAnimating) {
-            this.video.pause(); this.video.currentTime = targetTime; this.video.playbackRate = 1; this.video.play().catch(() => {});
-            currentSection.classList.remove('fade-out'); nextSection.classList.remove('fade-in');
-            requestAnimationFrame(() => { requestAnimationFrame(() => { this.video.pause(); this.isAnimating = false; }); });
+            if (this.video) {
+              this.video.pause();
+              try {
+                this.video.currentTime = targetTime;
+                console.log('✅ Final time set to:', targetTime);
+              } catch(e) {}
+              this.video.playbackRate = 1;
+            }
+            
+            if (currentSection) currentSection.classList.remove('fade-out');
+            if (nextSection) nextSection.classList.remove('fade-in');
+            
+            this.isAnimating = false;
+            console.log('✅ Navigation complete');
           }
-        }, playDuration + puffer);
+        }, playDuration + 100);
       }
+
       animateUI(index) {
         this.sections.forEach(s => s.classList.remove('active', 'prev', 'next'));
         this.sections.forEach((s, i) => { if (i === index) s.classList.add('active'); else if (i < index) s.classList.add('prev'); else s.classList.add('next'); });
@@ -1937,22 +2009,59 @@
       const video = document.getElementById('scroll-video');
       const section = document.getElementById('scroll-section');
       if (!video) return;
-      const videoSrc = getVideoSource();
-      video.src = videoSrc; video.load();
-      if (window.innerWidth > 768) video.style.backgroundColor = 'transparent';
-      video.addEventListener('loadeddata', () => section.classList.add('video-ready'));
+      
+      const isDesktop = window.innerWidth > 768;
+      const baseSrc = isDesktop ? '/assets/ocean-Desktop.webm' : '/assets/ocean-Mobile.webm';
+      
+      // 🔥 CRITICAL: Zeitstempel für Cloudflare
+      const timestamp = Date.now();
+      const videoSrc = `${baseSrc}?nocache=${timestamp}`;
+      
+      console.log('Loading video with cache buster:', videoSrc);
+      
+      // Video zurücksetzen und neu laden
+      video.pause();
+      video.src = videoSrc;
+      video.load();
+      
+      video.addEventListener('loadeddata', () => {
+        console.log('✅ Video loaded, duration:', video.duration);
+        if (section) section.classList.add('video-ready');
+        video.style.opacity = '0.8';
+      }, { once: true });
+      
+      video.addEventListener('error', (e) => {
+        console.error('❌ Video error:', e);
+      });
     }
 
+    // Bei Resize auch mit Cache-Buster
     let resizeTimer;
     window.addEventListener('resize', () => {
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(() => {
         const video = document.getElementById('scroll-video');
-        const currentSrc = video.src; const newSrc = getVideoSource();
-        if (!currentSrc.includes(newSrc.split('/').pop())) {
-          const wasPlaying = !video.paused; const currentTime = video.currentTime;
-          video.src = newSrc; video.load();
-          video.addEventListener('loadeddata', () => { video.currentTime = currentTime; if (wasPlaying) video.play(); }, { once: true });
+        if (!video) return;
+        
+        const wasPlaying = !video.paused;
+        const currentTime = video.currentTime;
+        const isDesktop = window.innerWidth > 768;
+        const baseSrc = isDesktop ? '/assets/ocean-Desktop.webm' : '/assets/ocean-Mobile.webm';
+        
+        // Auch hier Cache-Buster
+        const newSrc = `${baseSrc}?nocache=${Date.now()}`;
+        const currentBaseSrc = video.src.split('?')[0];
+        
+        if (currentBaseSrc !== baseSrc) {
+          console.log('Switching video source on resize');
+          video.pause();
+          video.src = newSrc;
+          video.load();
+          
+          video.addEventListener('loadeddata', () => {
+            video.currentTime = currentTime;
+            if (wasPlaying) video.play().catch(e => console.warn(e));
+          }, { once: true });
         }
       }, 250);
     });
