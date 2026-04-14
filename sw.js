@@ -1,6 +1,7 @@
 const CACHE_NAME = 'dna-ocean-cache-v10';
 
 const STATIC_ASSETS = [
+  '/index.html',
   '/assets/tsde_demo_cover.jpg',
   '/assets/gallery/tsde_engine.jpg',
   '/assets/gallery/motion_synth.jpg',
@@ -20,43 +21,28 @@ const VIDEO_ASSETS = [
 
 // ─── CLOUDFLARE-FIX: sauberer Video-Fetch ohne Range-Header ──────────────────
 async function fetchVideoForCache(url) {
-  // Explizit keine Range-Header, kein Cache-bypass → zwingt CF zu 200 OK
+  // Wir nutzen 'cache: "no-store"', um CF zu zwingen, die Datei frisch vom Origin zu holen
+  // ohne sie in Teilbereiche zu zerlegen.
   const response = await fetch(url, {
     method: 'GET',
+    cache: 'no-store', 
     headers: {
-      // Range-Header NICHT setzen – CF sendet sonst 206 Partial
-      'Cache-Control': 'no-cache'
-    },
-    // Wichtig: credentials und mode explizit setzen
-    credentials: 'same-origin',
-    mode: 'cors'
+      'Accept': 'video/webm,video/*;q=0.9',
+    }
   });
 
-  // Cloudflare gibt manchmal 206 zurück – das kann cache.put() nicht schlucken
   if (response.status === 206) {
-    console.warn('⚠️ CF returned 206 for', url, '– skipping cache (will load from network)');
-    return null;
-  }
-
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status} for ${url}`);
-  }
-
-  // Cloudflare-spezifische Cache-Control-Header prüfen
-  const cc = response.headers.get('Cache-Control') || '';
-  if (cc.includes('no-store') || cc.includes('private')) {
-    console.warn('⚠️ CF no-store header on', url, '– cloning without restriction');
-    // Response neu bauen ohne restriktive Headers
+    // Falls CF trotzdem 206 sendet, müssen wir den Body als Blob konsumieren 
+    // und eine neue 200er Response daraus bauen.
     const blob = await response.blob();
     return new Response(blob, {
       status: 200,
-      headers: {
-        'Content-Type': response.headers.get('Content-Type') || 'video/webm',
-        'Content-Length': response.headers.get('Content-Length') || ''
-      }
+      statusText: 'OK',
+      headers: response.headers
     });
   }
 
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
   return response;
 }
 
