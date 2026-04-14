@@ -1,149 +1,186 @@
-const CACHE_NAME = 'dna-ocean-cache-v11';
+const CACHE_NAME = 'ocean-pwa-v11';
+const OFFLINE_URL = '/offline.html';
 
-const STATIC_ASSETS = [
-  '/', // Wichtig für Cloudflare Pages Root-Zugriff
+// Dynamische Asset-Erkennung - KEINE festen Pfade mehr!
+const STATIC_CACHE = [
+  '/',
   '/index.html',
-  '/assets/tsde_demo_cover.jpg',
-  '/assets/gallery/tsde_engine.jpg',
-  '/assets/gallery/motion_synth.jpg',
-  '/assets/gallery/camera_rig.jpg',
-  '/assets/gallery/spline_editor.jpg',
-  '/assets/gallery/Blender_Host1.jpg',
-  '/assets/gallery/Blender_Host2.jpg',
-  '/assets/gallery/live_control.jpg',
-  '/assets/gallery/Blender_Host3.jpg',
-  '/assets/gallery/Blender_Host4.jpg'
+  '/offline.html',
+  '/manifest.json',
+  '/3danimator.html'
 ];
 
-const VIDEO_ASSETS = [
-  '/assets/ocean-Mobile.webm',
-  '/assets/ocean-Desktop.webm'
-];
-
-// --- HELPER: Erzeugt eine 206 Partial Response aus einer 200er Cache-Response ---
-async function createPartialResponse(request, cachedResponse) {
-  const arrayBuffer = await cachedResponse.arrayBuffer();
-  const rangeHeader = request.headers.get('range');
-  const match = rangeHeader.match(/bytes=(\d+)-(\d+)?/);
-  
-  if (match) {
-    const start = parseInt(match[1], 10);
-    const end = match[2] ? parseInt(match[2], 10) : arrayBuffer.byteLength - 1;
-    const slicedBuffer = arrayBuffer.slice(start, end + 1);
-    
-    return new Response(slicedBuffer, {
-      status: 206,
-      statusText: 'Partial Content',
-      headers: {
-        'Content-Type': cachedResponse.headers.get('Content-Type') || 'video/webm',
-        'Content-Range': `bytes ${start}-${end}/${arrayBuffer.byteLength}`,
-        'Content-Length': slicedBuffer.byteLength,
-        'Accept-Ranges': 'bytes'
-      }
-    });
-  }
-  return new Response(arrayBuffer, { headers: cachedResponse.headers });
-}
-
-// --- CLOUDFLARE-FIX: Video sauber in den Cache laden ---
-async function fetchVideoForCache(url) {
-  const response = await fetch(url, {
-    method: 'GET',
-    cache: 'no-store',
-    headers: { 'Accept': 'video/webm,video/*;q=0.9' }
-  });
-
-  if (response.status === 206 || response.ok) {
-    const blob = await response.blob();
-    return new Response(blob, {
-      status: 200,
-      statusText: 'OK',
-      headers: {
-        'Content-Type': response.headers.get('Content-Type') || 'video/webm',
-        'Content-Length': blob.size
-      }
-    });
-  }
-  throw new Error(`HTTP ${response.status}`);
-}
-
-// --- INSTALL ---
+// Dynamisch cachen - was wirklich existiert
 self.addEventListener('install', event => {
-  console.log('[SW] Install gestartet...');
+  console.log('[SW] Installing...');
   event.waitUntil(
-    caches.open(CACHE_NAME).then(async cache => {
-      // Statics
-      for (const asset of STATIC_ASSETS) {
-        try { await cache.add(asset); } catch (e) { console.warn('Fail:', asset); }
-      }
-      // Videos
-      for (const video of VIDEO_ASSETS) {
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
+      
+      // Nur wirklich vorhandene Ressourcen cachen
+      for (const asset of STATIC_CACHE) {
         try {
-          const res = await fetchVideoForCache(video);
-          await cache.put(video, res);
-        } catch (e) { console.warn('Video Fail:', video); }
+          const response = await fetch(asset, { cache: 'reload' });
+          if (response && response.ok) {
+            await cache.put(asset, response);
+            console.log(`✅ Cached: ${asset}`);
+          } else {
+            console.warn(`⚠️ Not found: ${asset}`);
+          }
+        } catch (error) {
+          console.warn(`⚠️ Failed to cache ${asset}:`, error.message);
+        }
       }
-      return self.skipWaiting();
-    })
+      
+      // Videos separat mit besserer Strategie
+      const videos = ['/assets/ocean-Mobile.webm', '/assets/ocean-Desktop.webm'];
+      for (const video of videos) {
+        try {
+          const response = await fetch(video, { cache: 'reload' });
+          if (response && response.ok) {
+            await cache.put(video, response);
+            console.log(`✅ Video cached: ${video}`);
+          }
+        } catch (error) {
+          console.warn(`⚠️ Video not available: ${video}`);
+        }
+      }
+      
+      await self.skipWaiting();
+    })()
   );
 });
 
-// --- ACTIVATE ---
 self.addEventListener('activate', event => {
+  console.log('[SW] Activating...');
   event.waitUntil(
-    caches.keys().then(keys => Promise.all(
-      keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
-    )).then(() => self.clients.claim())
+    (async () => {
+      // Lösche alte Caches
+      const cacheNames = await caches.keys();
+      await Promise.all(
+        cacheNames.map(name => {
+          if (name !== CACHE_NAME) {
+            console.log(`🗑️ Deleting old cache: ${name}`);
+            return caches.delete(name);
+          }
+        })
+      );
+      await self.clients.claim();
+      console.log('[SW] Ready for offline');
+    })()
   );
 });
 
-// --- FETCH ---
 self.addEventListener('fetch', event => {
   const { request } = event;
   const url = new URL(request.url);
-
+  
+  // Nur eigene Domain
+  if (url.origin !== self.location.origin) return;
+  
+  // Nur GET Requests
   if (request.method !== 'GET') return;
-
-  // A. VIDEO HANDLING (mit Range-Support für Scroll)
-  if (VIDEO_ASSETS.some(v => url.pathname.includes(v))) {
+  
+  // HTML: Cache First mit Offline-Fallback
+  if (request.destination === 'document') {
     event.respondWith(
-      caches.match(request).then(async cachedResponse => {
+      (async () => {
+        const cachedResponse = await caches.match(request);
         if (cachedResponse) {
-          if (request.headers.has('range')) {
-            return createPartialResponse(request, cachedResponse);
-          }
+          console.log(`📄 Cache hit: ${url.pathname}`);
           return cachedResponse;
         }
-        return fetch(request);
-      })
-    );
-    return;
-  }
-
-  // B. NAVIGATION / HTML (Offline Fix für Cloudflare Pages)
-  if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request)
-        .then(res => {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
-          return res;
-        })
-        .catch(() => caches.match('/') || caches.match('/index.html'))
-    );
-    return;
-  }
-
-  // C. STATISCHE ASSETS & REST
-  event.respondWith(
-    caches.match(request).then(cached => {
-      return cached || fetch(request).then(res => {
-        if (res.ok && res.status !== 206) {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
+        
+        try {
+          const networkResponse = await fetch(request);
+          if (networkResponse && networkResponse.ok) {
+            const cache = await caches.open(CACHE_NAME);
+            cache.put(request, networkResponse.clone());
+          }
+          return networkResponse;
+        } catch (error) {
+          console.log(`📄 Offline fallback for: ${url.pathname}`);
+          const offlinePage = await caches.match(OFFLINE_URL);
+          return offlinePage || new Response('Offline - Bitte verbinde dich mit dem Internet', {
+            status: 503,
+            headers: { 'Content-Type': 'text/html' }
+          });
         }
-        return res;
-      });
-    })
+      })()
+    );
+    return;
+  }
+  
+  // Assets (Bilder, CSS, JS): Cache First
+  if (request.destination === 'image' || 
+      request.destination === 'style' || 
+      request.destination === 'script' ||
+      url.pathname.includes('/assets/')) {
+    event.respondWith(
+      (async () => {
+        const cachedResponse = await caches.match(request);
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+        
+        try {
+          const networkResponse = await fetch(request);
+          if (networkResponse && networkResponse.ok) {
+            const cache = await caches.open(CACHE_NAME);
+            cache.put(request, networkResponse.clone());
+          }
+          return networkResponse;
+        } catch (error) {
+          // Für Bilder: Transparentes Placeholder
+          if (request.destination === 'image') {
+            return new Response('', { status: 204 });
+          }
+          console.warn(`Failed to fetch: ${url.pathname}`);
+          return new Response('Not available offline', { status: 404 });
+        }
+      })()
+    );
+    return;
+  }
+  
+  // Videos: Network First (bessere Qualität)
+  if (url.pathname.includes('.webm') || url.pathname.includes('.mp4')) {
+    event.respondWith(
+      (async () => {
+        try {
+          const networkResponse = await fetch(request);
+          if (networkResponse && networkResponse.ok) {
+            const cache = await caches.open(CACHE_NAME);
+            cache.put(request, networkResponse.clone());
+          }
+          return networkResponse;
+        } catch (error) {
+          const cachedResponse = await caches.match(request);
+          if (cachedResponse) {
+            console.log(`🎥 Video from cache: ${url.pathname}`);
+            return cachedResponse;
+          }
+          return new Response('Video not available offline', { status: 404 });
+        }
+      })()
+    );
+    return;
+  }
+  
+  // Alles andere: Network with Cache Fallback
+  event.respondWith(
+    (async () => {
+      try {
+        const networkResponse = await fetch(request);
+        if (networkResponse && networkResponse.ok) {
+          const cache = await caches.open(CACHE_NAME);
+          cache.put(request, networkResponse.clone());
+        }
+        return networkResponse;
+      } catch (error) {
+        const cachedResponse = await caches.match(request);
+        return cachedResponse || new Response('Resource not available', { status: 404 });
+      }
+    })()
   );
 });

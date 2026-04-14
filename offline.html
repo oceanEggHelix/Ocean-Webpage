@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline - O·C·E·A·N</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      background: radial-gradient(circle at 30% 10%, #0a0f1a 0%, #03060c 100%);
+      font-family: 'Segoe UI', 'Comfortaa', system-ui, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #00aaff;
+      padding: 20px;
+    }
+    .offline-container {
+      text-align: center;
+      max-width: 500px;
+      padding: 2rem;
+      background: rgba(10, 20, 30, 0.6);
+      backdrop-filter: blur(20px);
+      border-radius: 32px;
+      border: 1px solid rgba(0, 170, 255, 0.3);
+      box-shadow: 0 0 60px rgba(0, 170, 255, 0.2);
+    }
+    .egg-icon {
+      font-size: 5rem;
+      display: inline-block;
+      animation: float 3s ease-in-out infinite;
+      filter: drop-shadow(0 0 20px #00aaff);
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-15px); }
+    }
+    h1 {
+      font-size: 2rem;
+      margin: 1rem 0;
+      background: linear-gradient(135deg, #00aaff, #00ffaa);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    p {
+      color: #aac8ff;
+      margin: 1rem 0;
+      line-height: 1.6;
+    }
+    button {
+      background: linear-gradient(90deg, #00aaff, #0088cc);
+      border: none;
+      padding: 12px 32px;
+      font-size: 1rem;
+      font-weight: bold;
+      color: white;
+      border-radius: 40px;
+      cursor: pointer;
+      margin-top: 1.5rem;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 25px rgba(0, 170, 255, 0.5);
+    }
+    .retry-hint {
+      font-size: 0.8rem;
+      margin-top: 1.5rem;
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <div class="offline-container">
+    <div class="egg-icon">🥚</div>
+    <h1>O·C·E·A·N</h1>
+    <p>🌊 Du bist gerade offline.<br>
+    Die volle Experience benötigt eine Internetverbindung.</p>
+    <p style="font-size: 0.9rem;">✨ Bereits besuchte Seiten bleiben verfügbar ✨</p>
+    <button onclick="location.reload()">🔄 Neu verbinden</button>
+    <div class="retry-hint">💡 Überprüfe deine Internetverbindung</div>
+  </div>
+  <script>
+    // Automatisch neu laden wenn Verbindung wieder da ist
+    window.addEventListener('online', () => location.reload());
+  </script>
+</body>
+</html>
