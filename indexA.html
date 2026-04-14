@@ -45,12 +45,8 @@
   }
   </script>
 
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap">
-
-  <script defer src="/assets/js/libs/gsap.min.js"></script>
-  <script defer src="/assets/js/libs/ScrollTrigger.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap');
@@ -1380,37 +1376,46 @@
     =================================================================== */
 
 
-    /* ===================================================================
-       VIEWPORT FIX – JavaScript Teil
-       
-       Strategie (Priorität absteigend):
-       1. visualViewport.height  → genaueste Messung, aktualisiert sich
-                                   wenn Browser-UI ein-/ausfährt
-       2. window.innerHeight     → zweite Wahl, ebenfalls dynamisch
-       3. CSS dvh / svh          → reiner CSS-Fallback ohne JS
-       
-       --real-vh wird als CSS Custom Property gesetzt:
-       height: calc(var(--real-vh) * 100)  →  entspricht 100dvh
-    =================================================================== */
+    // === SAFE AREAS: Nur für mobile <480px feste Werte setzen ===
+    if (window.innerWidth < 480) {
+        document.documentElement.style.setProperty('--safe-top', '59px');
+        document.documentElement.style.setProperty('--safe-bottom', '34px');
+        document.documentElement.style.setProperty('--safe-left', '0px');
+        document.documentElement.style.setProperty('--safe-right', '0px');
+    }
+    // Für >=480px bleiben die CSS-Defaults (env(safe-area-inset-*, 0px)) aktiv
 
     // ── Fix 3: setRealViewportHeight – iOS Safari robuster ──
     function setRealViewportHeight() {
-      const vvh = window.visualViewport
-        ? window.visualViewport.height
-        : window.innerHeight;
+        const vvh = window.visualViewport
+            ? window.visualViewport.height
+            : window.innerHeight;
 
-      const vh = vvh * 0.01;
-      document.documentElement.style.setProperty('--real-vh', `${vh}px`);
+        const vh = vvh * 0.01;
+        document.documentElement.style.setProperty('--real-vh', `${vh}px`);
 
-      const globalContainer = document.getElementById('global-container');
-      if (globalContainer) {
-        // Direkt setzen UND als min-height – verhindert Springen auf Android
-        globalContainer.style.height = `${vvh}px`;
-        globalContainer.style.minHeight = `${vvh}px`;
-      }
+        // Safe Areas: Nur unter 480px mit fixen Werten überschreiben
+        if (window.innerWidth < 480) {
+            document.documentElement.style.setProperty('--safe-top', '59px');
+            document.documentElement.style.setProperty('--safe-bottom', '34px');
+            document.documentElement.style.setProperty('--safe-left', '0px');
+            document.documentElement.style.setProperty('--safe-right', '0px');
+        } else {
+            // Zurück auf CSS-Defaults (env()-Werte aus :root)
+            document.documentElement.style.removeProperty('--safe-top');
+            document.documentElement.style.removeProperty('--safe-bottom');
+            document.documentElement.style.removeProperty('--safe-left');
+            document.documentElement.style.removeProperty('--safe-right');
+        }
 
-      const networkCanvas = document.getElementById('network-bg');
-      if (networkCanvas) networkCanvas.style.height = `${vvh}px`;
+        const globalContainer = document.getElementById('global-container');
+        if (globalContainer) {
+            globalContainer.style.height = `${vvh}px`;
+            globalContainer.style.minHeight = `${vvh}px`;
+        }
+
+        const networkCanvas = document.getElementById('network-bg');
+        if (networkCanvas) networkCanvas.style.height = `${vvh}px`;
     }
 
     // Sofort ausführen (vor dem Rendern)
@@ -1972,7 +1977,7 @@
         
         setTimeout(() => window.location.href = url, 1500);
     }
-    function triggerTSDEPortal() { triggerPortal('tdse_early_access.html'); }
+    function triggerTSDEPortal() { triggerPortal('tdse-early-access.html'); }
 
     // ── Fix 1: pageshow – Höhe neu setzen, Animation NICHT neu starten ──
     // ── pageshow – Zurückkehren mit Swipe von links ──
@@ -2117,21 +2122,23 @@
       if (localStorage.getItem('forceWeakDevice') === 'true') return false;
       if (localStorage.getItem('forceStrongDevice') === 'true') return true;
       
-      const isMobileUA = /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent);
-      
-      // Mobile generell kein Network
-      if (isMobileUA) return false;
+      // Performance-Test statt pauschaler Mobile-Blockade
+      let isSlow = false;
+      try {
+        const startTime = performance.now();
+        let iterations = 0;
+        while (performance.now() - startTime < 100) {
+          iterations++;
+          Math.sqrt(iterations);
+        }
+        isSlow = iterations < 25000; // Schwellwert für "langsam"
+      } catch(e) { isSlow = true; }
       
       const cores = navigator.hardwareConcurrency || 2;
       const memory = navigator.deviceMemory || 4;
-      let isThrottled = false;
-      try {
-        const startTime = performance.now(); let iterations = 0;
-        while (performance.now() - startTime < 100) { iterations++; Math.sqrt(iterations); }
-        isThrottled = iterations < 30000;
-      } catch(e) {}
       
-      return !(isThrottled && (cores <= 4 || memory <= 2));
+      // Nur wirklich langsame Geräte blockieren
+      return !(isSlow && (cores <= 4 || memory <= 2));
     }
     window.testNetwork = {
       weak:   () => { localStorage.setItem('forceWeakDevice', 'true'); localStorage.removeItem('forceStrongDevice'); location.reload(); },
