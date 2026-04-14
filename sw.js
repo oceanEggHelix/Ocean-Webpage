@@ -1,6 +1,5 @@
-const CACHE_NAME = 'dna-ocean-cache-v9';
+const CACHE_NAME = 'dna-ocean-cache-v10';
 
-// Statische Assets (HTML bewusst NICHT drin!)
 const STATIC_ASSETS = [
   '/assets/tsde_demo_cover.jpg',
   '/assets/gallery/tsde_engine.jpg',
@@ -14,102 +13,176 @@ const STATIC_ASSETS = [
   '/assets/gallery/Blender_Host4.jpg'
 ];
 
-// Videos – werden wie bei Netlify SOFORT gecached
 const VIDEO_ASSETS = [
   '/assets/ocean-Mobile.webm',
   '/assets/ocean-Desktop.webm'
 ];
 
+// ─── CLOUDFLARE-FIX: sauberer Video-Fetch ohne Range-Header ──────────────────
+async function fetchVideoForCache(url) {
+  // Explizit keine Range-Header, kein Cache-bypass → zwingt CF zu 200 OK
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      // Range-Header NICHT setzen – CF sendet sonst 206 Partial
+      'Cache-Control': 'no-cache'
+    },
+    // Wichtig: credentials und mode explizit setzen
+    credentials: 'same-origin',
+    mode: 'cors'
+  });
+
+  // Cloudflare gibt manchmal 206 zurück – das kann cache.put() nicht schlucken
+  if (response.status === 206) {
+    console.warn('⚠️ CF returned 206 for', url, '– skipping cache (will load from network)');
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status} for ${url}`);
+  }
+
+  // Cloudflare-spezifische Cache-Control-Header prüfen
+  const cc = response.headers.get('Cache-Control') || '';
+  if (cc.includes('no-store') || cc.includes('private')) {
+    console.warn('⚠️ CF no-store header on', url, '– cloning without restriction');
+    // Response neu bauen ohne restriktive Headers
+    const blob = await response.blob();
+    return new Response(blob, {
+      status: 200,
+      headers: {
+        'Content-Type': response.headers.get('Content-Type') || 'video/webm',
+        'Content-Length': response.headers.get('Content-Length') || ''
+      }
+    });
+  }
+
+  return response;
+}
+
+// ─── INSTALL ──────────────────────────────────────────────────────────────────
 self.addEventListener('install', event => {
-  console.log('[SW] Install – caching static assets & videos…');
+  console.log('[SW] Install – Cloudflare-kompatibles Caching startet…');
 
   event.waitUntil(
     caches.open(CACHE_NAME).then(async cache => {
 
-      // 1. Statische Assets cachen
-      console.log('[SW] Caching static assets:', STATIC_ASSETS);
+      // 1. Statische Assets
       for (const asset of STATIC_ASSETS) {
         try {
           await cache.add(asset);
-          console.log('✅ Cached:', asset);
+          console.log('✅ Static:', asset);
         } catch (err) {
-          console.warn('❌ Failed:', asset, err);
+          console.warn('❌ Static failed:', asset, err.message);
         }
       }
 
-      // 2. Videos hart & sofort cachen (wie bei Netlify)
-      console.log('[SW] Pre-caching videos:', VIDEO_ASSETS);
-      for (const video of VIDEO_ASSETS) {
+      // 2. Videos mit Cloudflare-Fix
+      for (const videoUrl of VIDEO_ASSETS) {
         try {
-          const response = await fetch(video, { cache: 'reload' });
-          if (!response.ok) throw new Error(response.status);
-          await cache.put(video, response.clone());
-          console.log('🎥 Video cached:', video);
+          const response = await fetchVideoForCache(videoUrl);
+          if (response) {
+            await cache.put(videoUrl, response);
+            console.log('🎥 Video cached:', videoUrl);
+          } else {
+            console.warn('⏭ Video skipped (CF 206):', videoUrl);
+          }
         } catch (err) {
-          console.warn('❌ Video failed:', video, err);
+          console.warn('❌ Video failed:', videoUrl, err.message);
+          // NICHT werfen – SW soll trotzdem installieren
         }
       }
 
-      console.log('[SW] All caching done.');
-      self.skipWaiting();
+      console.log('[SW] Install abgeschlossen.');
+      return self.skipWaiting();
     })
   );
 });
 
+// ─── ACTIVATE ─────────────────────────────────────────────────────────────────
 self.addEventListener('activate', event => {
-  console.log('[SW] Activate – cleaning old caches…');
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.map(key => {
-        if (key !== CACHE_NAME) {
-          console.log('🗑 Deleting old cache:', key);
-          return caches.delete(key);
-        }
-      }))
-    ).then(() => self.clients.claim())
+    caches.keys()
+      .then(keys => Promise.all(
+        keys.filter(k => k !== CACHE_NAME).map(k => {
+          console.log('🗑 Alter Cache gelöscht:', k);
+          return caches.delete(k);
+        })
+      ))
+      .then(() => self.clients.claim())
   );
 });
 
+// ─── FETCH ────────────────────────────────────────────────────────────────────
 self.addEventListener('fetch', event => {
-  const url = event.request.url;
+  const { request } = event;
+  const url = request.url;
 
-  if (event.request.method !== 'GET') return;
+  if (request.method !== 'GET') return;
 
-  // 1. VIDEO: Cache First
+  // 1. Videos: Cache-First, bei Miss Network + in Cache schreiben
   if (VIDEO_ASSETS.some(v => url.includes(v))) {
-    const filename = url.split('/').pop();
     event.respondWith(
-      caches.match(event.request).then(cached => {
+      caches.open(CACHE_NAME).then(async cache => {
+        const cached = await cache.match(request);
         if (cached) {
-          console.log('🎥 Video from cache:', filename);
+          console.log('🎥 Video aus Cache:', url.split('/').pop());
           return cached;
         }
-        console.log('📥 Video from network:', filename);
-        return fetch(event.request);
-      })
-    );
-    return;
-  }
 
-  // 2. STATIC ASSETS: Cache First
-  if (STATIC_ASSETS.some(a => url.includes(a))) {
-    const filename = url.split('/').pop();
-    event.respondWith(
-      caches.match(event.request).then(cached => {
-        if (cached) {
-          console.log('🖼 Asset from cache:', filename);
-          return cached;
-        }
-        return fetch(event.request).then(resp => {
-          if (resp.ok) {
-            caches.open(CACHE_NAME).then(cache => cache.put(event.request, resp.clone()));
+        // Nicht im Cache → Netzwerk, dann versuchen zu cachen
+        console.log('📥 Video vom Netzwerk:', url.split('/').pop());
+        try {
+          const response = await fetchVideoForCache(url);
+          if (response) {
+            // clone vor cache.put(), da body sonst consumed
+            const clone = response.clone();
+            cache.put(request, clone); // async, kein await nötig
+            return response;
           }
-          return resp;
-        });
+        } catch (err) {
+          console.warn('Video-Fetch fehlgeschlagen:', err.message);
+        }
+
+        // Letzter Ausweg: normaler fetch (für Range-Requests des Video-Players)
+        return fetch(request);
       })
     );
     return;
   }
 
-  // 3. ALLES ANDERE → Netzwerk (HTML, JS, CDN)
+  // 2. Statische Assets: Cache-First
+  if (STATIC_ASSETS.some(a => url.includes(a))) {
+    event.respondWith(
+      caches.open(CACHE_NAME).then(async cache => {
+        const cached = await cache.match(request);
+        if (cached) return cached;
+
+        const response = await fetch(request);
+        if (response.ok) {
+          cache.put(request, response.clone());
+        }
+        return response;
+      })
+    );
+    return;
+  }
+
+  // 3. HTML-Dokumente: Network-First mit Cache-Fallback
+  if (request.destination === 'document') {
+    event.respondWith(
+      fetch(request)
+        .then(response => {
+          if (response.ok) {
+            caches.open(CACHE_NAME)
+              .then(cache => cache.put(request, response.clone()));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request).then(r => r || caches.match('/index.html')))
+    );
+    return;
+  }
+
+  // 4. Alles andere: Netzwerk (JS, CSS, CDN)
 });
