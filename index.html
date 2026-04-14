@@ -1937,19 +1937,10 @@
       const video = document.getElementById('scroll-video');
       const section = document.getElementById('scroll-section');
       if (!video) return;
-
       const videoSrc = getVideoSource();
-      video.src = videoSrc;
-      video.fetchPriority = "high";   // ← WICHTIG
-      video.load();
-
-      if (window.innerWidth > 768) {
-        video.style.backgroundColor = 'transparent';
-      }
-
-      video.addEventListener('loadeddata', () => {
-        section.classList.add('video-ready');
-      });
+      video.src = videoSrc; video.load();
+      if (window.innerWidth > 768) video.style.backgroundColor = 'transparent';
+      video.addEventListener('loadeddata', () => section.classList.add('video-ready'));
     }
 
     let resizeTimer;
@@ -1957,21 +1948,11 @@
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(() => {
         const video = document.getElementById('scroll-video');
-        const currentSrc = video.src;
-        const newSrc = getVideoSource();
-
+        const currentSrc = video.src; const newSrc = getVideoSource();
         if (!currentSrc.includes(newSrc.split('/').pop())) {
-          const wasPlaying = !video.paused;
-          const currentTime = video.currentTime;
-
-          video.src = newSrc;
-          video.fetchPriority = "high";   // ← WICHTIG
-          video.load();
-
-          video.addEventListener('loadeddata', () => {
-            video.currentTime = currentTime;
-            if (wasPlaying) video.play();
-          }, { once: true });
+          const wasPlaying = !video.paused; const currentTime = video.currentTime;
+          video.src = newSrc; video.load();
+          video.addEventListener('loadeddata', () => { video.currentTime = currentTime; if (wasPlaying) video.play(); }, { once: true });
         }
       }, 250);
     });
